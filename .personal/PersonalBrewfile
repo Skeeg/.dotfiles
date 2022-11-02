@@ -1,0 +1,13 @@
+
+brew "dosbox"
+brew "esptool"
+brew "handbrake"
+brew "platformio"
+brew "youtube-dl"
+cask "beyond-compare"
+cask "gog-galaxy"
+cask "raspberry-pi-imager"
+cask "snagit"
+cask "spotify"
+cask "steam"
+mas "Steam Link", id: 1246969117
