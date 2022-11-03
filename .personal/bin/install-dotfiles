@@ -1,0 +1,46 @@
+#!/bin/bash
+
+alias dotgit='/usr/bin/git --git-dir=$HOME/.personal/.cfg/ --work-tree=$HOME'
+
+GIT_DIR=$HOME/.personal/.cfg
+
+# Clone and checkout DotFiles
+if [ ! -d "$GIT_DIR" ]; then
+  echo -e "🟡 Cloning DotFiles to $GIT_DIR\n"
+  command git clone --bare git@github.com:Skeeg/.dotfiles.git $GIT_DIR
+  command git --git-dir=$GIT_DIR --work-tree=$HOME checkout
+  command git --git-dir=$GIT_DIR config --local status.showUntrackedFiles no
+else
+  echo -e "✅ DotFiles git exists at $GIT_DIR\n"
+fi
+
+# Install Homebrew bundle
+if [ ! -f "$HOME/.personal/WorkBrewfile.lock.json" ]; then
+  echo -e "🍺 Installing Homebrew bundle (takes some time ⏳)\n"
+  command brew bundle install --file=$HOME/.personal/WorkBrewfile
+else
+  echo -e "✅ Homebrew lock file exists, skipping install\n"
+fi
+
+# Take user input to create git config
+if [ ! -f "$HOME/.gitconfig" ]; then
+  echo -e "📝 Creating global git config at $HOME/.personal/.gitconfig\n"
+  command git config --global include.path "$HOME/.personal/.gitconfig-defaults"
+  echo -e "💬 Enter your name for git commits:"
+  read NAME
+  echo -e ""
+  command git config --global user.name "$NAME"
+  echo -e "💬 Enter your git account email:"
+  read EMAIL
+  echo -e ""
+  command git config --global user.email "$EMAIL"
+  echo -e "💬 Enter your git account username:"
+  read USERNAME
+  echo -e ""
+  command git config --global user.username "$USERNAME"
+else
+  echo -e "✅ Global git config found\n"
+fi
+
+# Done
+echo -e "💟 DotFiles installed, restart shell for changes to take effect\n"

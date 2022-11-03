@@ -15,11 +15,6 @@ alias antibundle='antibody bundle < $HOME/.antibody-plugins > $HOME/.antibody-bu
 # e.g. config add ~/.zshrc to commit this file.
 alias config='git --git-dir=$HOME/.cfg --work-tree=$HOME'
 
-# ASDF
-# http://asdf-vm.com/
-# Add ASDF environment setup.
-source $(brew --prefix asdf)/libexec/asdf.sh
-
 # Granted
 # https://granted.dev/
 # Alias to switch profile and populate temporary credentials
@@ -65,6 +60,11 @@ export PATH=/usr/local/bin:$PATH
 export PATH=$HOME/bin:$PATH
 export PATH=/opt/homebrew/bin:$PATH
 export MANPATH=/usr/local/man:$MANPATH
+
+# ASDF
+# http://asdf-vm.com/
+# Add ASDF environment setup.
+source $(brew --prefix asdf)/libexec/asdf.sh
 
 # Use hyphen-insensitive completion
 HYPHEN_INSENSITIVE="true"
