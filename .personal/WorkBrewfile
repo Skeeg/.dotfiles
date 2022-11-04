@@ -38,6 +38,7 @@ brew "k9s"
 brew "kubernetes-cli"
 brew "kubectx"
 brew "lastpass-cli"
+brew "libpq", link: true
 brew "llvm"
 brew "mas"
 brew "minikube"
