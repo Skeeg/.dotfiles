@@ -92,6 +92,7 @@ cask "tunnelblick"
 cask "vlc"
 mas "Clocker", id: 1056643111
 mas "Dark Reader for Safari", id: 1438243180
+mas "Flycut", id: 442160987
 mas "LanScan", id: 472226235
 mas "Magnet", id: 441258766
 mas "Microsoft Remote Desktop", id: 1295203466
