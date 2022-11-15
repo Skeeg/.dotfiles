@@ -1,7 +1,32 @@
-**/.DS_Store
-**/.bash_history
-**/.zsh_history
-node_modules
+# Mac
+.DS_Store
+
+# History and home directory stuff
+~/.bash_history
+~/.zsh_history
+
+# Some "dotgit" method git paths
 ~/.cfg
 ~/.personal/.cfg
+
+# Snyk VSCode cache files
 **/.dccache
+
+# Node
+npm-debug.log
+node_modules
+
+# Windows
+Thumbs.db
+
+# WebStorm
+.idea/
+
+# vi
+*~
+
+# General
+log/
+*.log
+
+# etc..
