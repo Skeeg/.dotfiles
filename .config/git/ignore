@@ -1,3 +1,16 @@
+# References and explanation
+# If you use the `git config --global core.excludesFile "~/.gitignore"` method, 
+# this file will currently be ignored.  This file is a default mechanism for
+# ignoring files and I use it to establish a baseline environment for myself.
+# To fail back to this file, run `git config --global --unset core.excludesFile`
+
+# Gitignore documentation: https://git-scm.com/docs/gitignore
+
+# It does aggregate with repo specific .gitignore methods, so tune this to your
+# development environments needs.
+
+# A repository with many excellent examples: https://github.com/github/gitignore
+
 # Mac
 .DS_Store
 
