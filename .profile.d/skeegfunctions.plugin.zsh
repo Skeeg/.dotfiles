@@ -52,6 +52,7 @@ gittyupsalt() {
 }
 
 secret () {
+  # Credit to https://github.com/ACloudGuru/node-dev-dotfiles/blob/trunk/lib/secret.sh
 	USAGE="
     Usage:
     > secret set [KEY] [VALUE]
