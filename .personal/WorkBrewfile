@@ -88,7 +88,7 @@ cask "powershell"
 cask "rider"
 cask "session-manager-plugin"
 cask "signal"
-cask "tunnelblick"
+cask "visual-studio-code"
 cask "vlc"
 mas "Clocker", id: 1056643111
 mas "Dark Reader for Safari", id: 1438243180
