@@ -4,10 +4,14 @@ brew "esptool"
 brew "handbrake"
 brew "platformio"
 brew "youtube-dl"
+cask "balenaetcher"
 cask "beyond-compare"
 cask "gog-galaxy"
 cask "raspberry-pi-imager"
 cask "snagit"
 cask "spotify"
 cask "steam"
+mas "LanScan", id: 472226235
+mas "MQTT Explorer", id: 1455214828
+mas "Speedtest", id: 1153157709
 mas "Steam Link", id: 1246969117

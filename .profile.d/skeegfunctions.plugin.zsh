@@ -44,7 +44,10 @@ EOF
 
 #OS Conveniences
 flushdns() { sudo killall -HUP mDNSResponder }
-gittyup() { source $scripts/shell/pull_git_repos.sh --repo-path "$repopath" }
+gittyup() { 
+  #Variable $1 value can be --auto-switch-on-missing to change branches back to the origin default if the branch is found missing
+  source $scripts/shell/pull_git_repos.sh --repo-path "$repopath" $1
+}
 
 gittyupsalt() { 
   source $scripts/shell/pull_git_repos.sh --repo-path $HOME/full_salt/repo_saltstack_pillars;
