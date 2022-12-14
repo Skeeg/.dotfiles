@@ -25,14 +25,3 @@ vp() {
 vs() {
   vault-login $VAULT_STAGING_ADDRESS
 }
-
-select-vault-server() {
-  unset VAULT_ADDRESS
-  X_ENVIRONMENT="$(tfenvironment 2>/dev/null)"
-  [[ "$X_ENVIRONMENT" = "staging" ]] && { VAULT_ADDRESS=$VAULT_STAGING_ADDRESS }
-  [[ "$X_ENVIRONMENT" = "production" ]] && { VAULT_ADDRESS=$VAULT_PRODUCTION_ADDRESS }
-  [[ -z $VAULT_ADDRESS ]] && \
-    { echo "No Terraform Environment Found to select Vault Server" } || \
-    { echo "$VAULT_ADDRESS" }
-  unset X_ENVIRONMENT
-}
