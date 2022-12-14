@@ -31,3 +31,41 @@ saml2aws-orgmaster() {
 saml2aws-devops() {
   saml2aws login --force --skip-prompt --role=$ROLE_ARN_DEVOPS
 }
+
+update-secretsmanager-entry-from-lastpass() {
+  USAGE="
+    Usage:
+    !!!!!!!!!!!! Make sure you are in the right account first !!!!!!!!!!!!
+    !!!!! Confirmation via \`aws sts get-caller-identity\` recommended !!!!!
+    > update-secretsmanager-entry-from-lastpass [Secret-Name] [Secret-JSON-Text]
+    example: update-secretsmanager-entry-from-lastpass \\
+      \"bounded-context\\\application-secrets\" \\
+      \"\$(lpass show --note \"last-pass-card-name\" | jq -c)\"
+
+      Honestly, this is a barely useful wrapper around what could be easily achieved with 
+      properly wrapping the json input to the aws secretsmanager method with quotes
+      and also leveraging compressed json via \`jq-c\`.  Such as this:
+      
+      aws secretsmanager update-secret \\
+        --secret-id \"secret-name\" \\
+        --secret-string \"\$(lpass show --note '<cardname>' | jq -c)\"
+
+      However, this function allows a little \"prettier\" json to potentially be ingested....
+      Nah, still need to make sure you do not provide json that has IFS qualified separators.  
+          jq -c is your friend
+  "
+	X_SECRET_NAME="$1"
+  X_SECRET_STRING="$2"
+	ARG_LENGTH="$#"
+  if [ $ARG_LENGTH -eq "2" ]
+  then
+  OLDIFS=$IFS; IFS=
+  aws secretsmanager update-secret \
+    --secret-id "$X_SECRET_NAME" \
+    --secret-string "$X_SECRET_STRING"; 
+  IFS=$OLDIFS
+  else
+    echo $USAGE
+  fi
+  unset X_SECRET_NAME X_SECRET_STRING
+}

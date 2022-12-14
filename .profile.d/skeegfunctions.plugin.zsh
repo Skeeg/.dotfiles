@@ -101,6 +101,16 @@ LPASS_DISABLE_PINENTRY=1
 export LPASS_AGENT_TIMEOUT LPASS_DISABLE_PINENTRY
 
 login-lastpass() { secret get lpass-login | lpass login "$EMAIL_ADDRESS" }
+lastpass-work() {
+  ln -sf ~/.lpass/trusted_id.work ~/.lpass/trusted_id
+  echo "If this fails, you may need to refresh you login token via \`lpass login --trust \"\$EMAIL_ADDRESS_WORK\"\`"
+  secret get lpass-login-work | lpass login "$EMAIL_ADDRESS_WORK"
+}
+lastpass-personal() { 
+  ln -sf ~/.lpass/trusted_id.personal ~/.lpass/trusted_id
+  echo "If this fails, you may need to refresh you login token via \`lpass login --trust \"\$EMAIL_ADDRESS_PERSONAL\"\`"
+  secret get lpass-login-personal | lpass login "$EMAIL_ADDRESS_PERSONAL" 
+}
 
 # General Convenience Logins
 init-sessions() { 
