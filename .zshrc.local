@@ -73,4 +73,3 @@ done
 
 alias dotgit='/usr/bin/git --git-dir=$HOME/.personal/.cfg/ --work-tree=$HOME'
 
-if which jenv > /dev/null; then eval "$(jenv init -)"; fi

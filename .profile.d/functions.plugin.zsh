@@ -23,9 +23,9 @@ mount() { sudo mount | column -t ; }               # mount:        Human readabl
 fastping() { \ping -c 100 -s 1 "$@" ; }            # fastping:     Send 100 one byte packages plus header
 j() { jobs -l ; }                                  # j:            List jobs
 hibernate() { sudo pmset -a hibernatemode 25 ; }   # hibernate:    Set hibernate mode
-sleep() { sudo pmset -a hibernatemode 0 ; }        # sleep:        Set sleep mode
+sleepmode() { sudo pmset -a hibernatemode 0 ; }    # sleep:        Set sleep mode
 safesleep() { sudo pmset -a hibernatemode 3 ; }    # safesleep:    Set safe sleep mode
-smartsleep() { sudo pmset -a hibernatemode 2 ; }   # smartsleep:   Set smart sleep mode
+smartsleep() { sudo pmset -a hibernatemode 2 ; }   # smartsleep:   Set smart sleep mode 
 cowdate() { LANG=C date | cowsay ; }               # cowdate:      Show date announced by cow
 
 ### Tools ###
@@ -112,3 +112,4 @@ extract() {
 makefile_1mb() { mkfile 1m ./1MB.dat ; }           # makefile_1mb:      Creates a file of 1mb size (all zeros)
 makefile_5mb() { mkfile 5m ./5MB.dat ; }           # makefile_5mb:      Creates a file of 5mb size (all zeros)
 makefile_10mb() { mkfile 10m ./10MB.dat ; }        # makefile_10mb:     Creates a file of 10mb size (all zeros)
+

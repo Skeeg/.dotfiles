@@ -1,4 +1,4 @@
-if [ $(echo $SHELL | rev | cut -d"/" -f1 | rev) = "zsh" ]; 
+if [ ${SHELL##*/} = "zsh" ]; 
 then
   if (( ! $+_cmd_log_fd )); then
     zmodload zsh/system

@@ -16,18 +16,45 @@
 # Set AWS output to not use `less`
 export AWS_PAGER="";
 
-SAML2AWS_SESSION_DURATION=28800
-export SAML2AWS_SESSION_DURATION
+# Introduced to me by John Meyers aka MoJoJoJu
+function ec2-bc() {
+  if [ $# -le 0 ]
+  then
+    echo "Enter a Bounded Context name to search for: ec2-bc some-name"
+    return 0
+  fi
+  aws ec2 describe-instances \
+    --query 'Reservations[*].Instances[*].[InstanceId,Tags[?Key==`Name`].Value[]]' \
+    --filters "Name=tag-value,Values=$1" --output text | \
+    sed '$!N;s/\n/ /' | \
+    sort -k2
+}
 
-saml2aws-production() {
-  saml2aws login --force --skip-prompt --role=$ROLE_ARN_PRODUCTION
+# Introduced to me by John Meyers aka MoJoJoJu
+function ssm() {
+  if [ $# -le 0 ]
+  then
+    echo "Enter an Instance ID: ssm i-0123456789abcedf"
+    return 0
+  fi
+  aws ssm start-session --target "$1"
 }
-saml2aws-staging() {
-  saml2aws login --force --skip-prompt --role=$ROLE_ARN_STAGING
+
+# Introduced to me by Rob Rotaru
+function fzf-aws-ssm() {
+  if ! aws sts get-caller-identity > /dev/null 2>&1
+  then
+    echo "No active AWS session, run 'assume' first."
+    return 0
+  fi
+
+  if [ $# -le 0 ]
+  then
+    echo "Enter an EC2 tag to search for (e.g. 'saltmaster')"
+    return 0
+  fi
+
+  instance_id=$(ec2-bc $1 | fzf --height 50% --ansi --no-multi --preview 'aws ec2 describe-instances --instance-ids $(sed "s/^\(i-[0-9a-f]*\).*$/\1/" <<< {}) --output yaml-stream' | awk '{print $1}')
+  ssm $instance_id
 }
-saml2aws-orgmaster() {
-  saml2aws login --force --skip-prompt --role=$ROLE_ARN_ORGMASTER
-}
-saml2aws-devops() {
-  saml2aws login --force --skip-prompt --role=$ROLE_ARN_DEVOPS
-}
+

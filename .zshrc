@@ -6,8 +6,8 @@ alias upbrew="brew update && brew upgrade && brew cleanup && brew doctor && say 
 # Antibody
 # https://getantibody.github.io/
 # Run static antibody bundle to load ZSH and plugins
-source $HOME/.antibody-bundle.sh
-alias antibundle='antibody bundle < $HOME/.antibody-plugins > $HOME/.antibody-bundle.sh'
+# source $HOME/.antibody-bundle.sh
+# alias antibundle='antibody bundle < $HOME/.antibody-plugins > $HOME/.antibody-bundle.sh'
 
 # Dotfiles
 # https://www.atlassian.com/git/tutorials/dotfiles
@@ -80,3 +80,9 @@ COMPLETION_WAITING_DOTS="true"
 
 # Disable marking untracked files under VCS as dirty
 DISABLE_UNTRACKED_FILES_DIRTY="true"
+setopt extended_history
+HISTFILE=~/.zsh_history
+SAVEHIST=100000
+TIMESTAMP=$(date "+%Y-%m-%d %H:%M:%S")
+HIST_STAMPS="${TIMESTAMP}"
+export PATH="/opt/homebrew/opt/dotnet@6/bin:$PATH"

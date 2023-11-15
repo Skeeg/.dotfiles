@@ -18,10 +18,10 @@ vault-login() {
     jq -r $JQ_PATH}
 }
 
-vp() {
+vault-production() {
   vault-login $VAULT_PRODUCTION_ADDRESS
 }
 
-vs() {
+vault-staging() {
   vault-login $VAULT_STAGING_ADDRESS
 }
