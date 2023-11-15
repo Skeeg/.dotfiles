@@ -25,11 +25,12 @@ alias lca='colorls -al'
 alias ll='ls -lha'
 
 ### Additions courtesy of Kristy Stallings aka kstallings 
-alias create='!git pull && git checkout -b'
-alias save='!git add -A && git commit -S -m'
-alias oops='!git reset HEAD~'
-alias refresh="!sh -c '_CURRENT_BRANCH=$(git symbolic-ref --short HEAD) && git checkout $1 && git pull && git checkout $_CURRENT_BRANCH && git rebase $1' -"
-alias br="branch --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) %(color:green)(%(committerdate:relative)) [%(authorname)]' --sort=-committerdate"
-alias br-all="branch -r --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) %(color:green)(%(committerdate:relative)) [%(authorname)]' --sort=-committerdate"
-alias br-clean='!git remote prune origin'
-alias lg='!git log --pretty=format:\"%C(magenta)%h%Creset -%C(red)%d%Creset %s %C(dim green)(%cr) [%an]\" --abbrev-commit -30'
+# alias create='!git pull && git checkout -b'
+# alias save='!git add -A && git commit -S -m'
+# alias oops='!git reset HEAD~'
+# alias refresh="!sh -c '_CURRENT_BRANCH=$(git symbolic-ref --short HEAD) && git checkout $1 && git pull && git checkout $_CURRENT_BRANCH && git rebase $1' -"
+# alias br="branch --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) %(color:green)(%(committerdate:relative)) [%(authorname)]' --sort=-committerdate"
+# alias br-all="branch -r --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) %(color:green)(%(committerdate:relative)) [%(authorname)]' --sort=-committerdate"
+# alias br-clean='!git remote prune origin'
+# alias lg='!git log --pretty=format:\"%C(magenta)%h%Creset -%C(red)%d%Creset %s %C(dim green)(%cr) [%an]\" --abbrev-commit -30'
+
