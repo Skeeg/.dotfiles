@@ -60,9 +60,13 @@ tfes() {
 refresh-tfenv-vers () {
   tfvers=$(tfenv list-remote)
   for TFVERSION in $(echo $tfvers | grep -e "^1\." | cut -d"." -f1-2 | uniq)
+  do
     tfenv install latest\:^$TFVERSION
+  done
   for TFVERSION in $(echo $tfvers | grep -e "^0\.1[2-6]\..*" | cut -d"." -f1-2 | uniq)
+  do
     TFENV_ARCH=amd64 tfenv install latest\:^$TFVERSION
+  done
 }
 
 tf-validate() {

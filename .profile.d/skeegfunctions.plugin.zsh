@@ -252,7 +252,9 @@ setenv() {
 refresh-asdf-nodejs-vers () {
   nodejsvers=$(asdf list all nodejs)
   for NODEVERSION in $(echo "14 16 18 20 22")
+  do
     asdf install nodejs $(echo $nodejsvers | grep -e "^$NODEVERSION" | tail -1)
+  done
 }
 
 _truncated_env_output () {
