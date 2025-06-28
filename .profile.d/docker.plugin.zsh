@@ -25,7 +25,7 @@ dps() {
 
 compose-up() {
   cd "$REPOPATH/$1"
-  docker compose up -d
+  docker compose up -d --build
   cd -
 }
 

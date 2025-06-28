@@ -28,14 +28,6 @@ artifactory-download() {
 }
 
 # BC specific convenience functions
-mitigations-up () {
-	compose-up mitigations_v2
-}
-
-mitigations-down () {
-	compose-down mitigations_v2
-}
-
 identity-up () {
 	compose-up identity
 }
@@ -43,7 +35,6 @@ identity-up () {
 identity-down () {
 	compose-down identity
 }
-
 
 terraform_target_group_parse() {
   EXEC_MODE="$1"
@@ -66,3 +57,8 @@ terraform_target_group_parse() {
     done
   done
 }
+
+alias sudo="/Applications/Privileges.app/Contents/Resources/PrivilegesCLI --add; sudo "
+
+#sample alias for tsh proxy db
+#alias tsh-staging-whatever-db='tsh proxy db --db-name=the_db_name is-bounded-context-aurora --port 5433 --tunnel'

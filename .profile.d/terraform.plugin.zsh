@@ -11,27 +11,51 @@ alias ta='terraform apply'
 alias ti='terraform init'
 alias tp='terraform plan'
 alias tc='terraform console'
-tftargets() {for a in $(terraform plan | grep " be" | awk '{print $3}' | grep -e "aws" -e "vault"); echo "--target='$a' \\"}
-tftargetsraw() {for a in $(terraform plan | grep " be" | awk '{print $3}' | grep -e "aws" -e "vault" | grep -v "cloudwatch"); printf "--target=$a "}
-tfvalidate() {terraform validate -json | jq '.diagnostics[] | {detail: .detail, filename: .range.filename, start_line: .range.start.line}'}
+tftargets() {
+  for a in $(terraform plan | grep " be" | awk '{print $3}' | grep -e "aws" -e "vault"); 
+  do
+    echo "--target='$a' \\"
+  done
+}
+
+tftargetsraw() {
+  for a in $(terraform plan | grep " be" | awk '{print $3}' | grep -e "aws" -e "vault" | grep -v "cloudwatch"); 
+  do
+    printf "--target=$a "
+  done
+}
 
 # Terraform workspace aliases
 # ******* These are the latest ******** #
-tfcs() {terraform workspace select "${PWD##*/}-staging-us-west-2" && kubestage}
-tfcp() {terraform workspace select "${PWD##*/}-production-us-west-2" && kubeprod}
-tfcdr() {terraform workspace select "${PWD##*/}-production-us-east-2-dr"}
+tfcs() {
+  terraform workspace select "${PWD##*/}-staging-us-west-2" && kubestage
+}
+ztfcp() {
+  terraform workspace select "${PWD##*/}-production-us-west-2" && kubeprod
+  }
+tfcdr() {
+  terraform workspace select "${PWD##*/}-production-us-east-2-dr"
+}
 
-tfcenv() {cat .terraform/environment | sed -n \
+tfcenv() {
+  cat .terraform/environment | sed -n \
   -e "s/^.*-\(\staging\).*$/\1/p" \
-  -e "s/^.*-\(\production\).*$/\1/p"}
-tfenvironment() {[[ $(cat .terraform/environment) = 'staging' ]] || \
+  -e "s/^.*-\(\production\).*$/\1/p"
+}
+tfenvironment() {
+  [[ $(cat .terraform/environment) = 'staging' ]] || \
   [[ $(cat .terraform/environment) = 'production' ]] && \
   cat .terraform/environment || \
-  tfcenv}
+  tfcenv
+}
 # ************************************* #
 
-tfep() {terraform workspace select production; kubectx app-production.kube.us-west-2.ldap}
-tfes() {terraform workspace select staging; kubectx app-k8s.eplur-staging.us-west-2.ldap}
+tfep() {
+  terraform workspace select production; kubectx app-production.kube.us-west-2.ldap
+}
+tfes() {
+  terraform workspace select staging; kubectx app-k8s.eplur-staging.us-west-2.ldap
+}
 
 refresh-tfenv-vers () {
   tfvers=$(tfenv list-remote)

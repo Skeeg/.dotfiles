@@ -5,10 +5,10 @@ HISTFILE="$HOME/.zsh_history"
 
 # Configure history stamp format
 HIST_STAMPS="yyyy-mm-dd"
-HISTTIMEFORMAT="%d/%m/%y %T "
+HISTTIMEFORMAT="%Y/%m/%d %T "
 
 export HISTSIZE SAVEHIST HISTFILESIZE HISTFILE HIST_STAMPS HISTTIMEFORMAT
-if [ ${SHELL##*/} = "zsh" ]; 
+if [ $(echo $SHELL | rev | cut -d"/" -f1 | rev) = "zsh" ];
 then
   setopt extendedhistory
   setopt histexpiredupsfirst

@@ -91,18 +91,19 @@ secret () {
 
 # General Convenience Logins
 init-sessions() { 
-  ssh-add --apple-use-keychain ~/.ssh/id_rsa; 
-  source "$SCRIPTS"/shell/set_env_vars.sh --email-address "$EMAIL_ADDRESS" 
+  # ssh-add --apple-use-keychain ~/.ssh/id_rsa; 
+  # source "$SCRIPTS"/shell/set_env_vars.sh --email-address "$EMAIL_ADDRESS" 
+  tsh login --proxy=pluralsight.teleport.sh --auth okta
     # This could use some refactoring.  
     # Idea is to create a sync from lastpass to local keychain maybe
 }
 
 get-tfc-variable-id() {
-  USAGE='
+  USAGE="
     Usage:
     > get-tfc-variable-id [key] [organization] [workspace-name] [TFC-API-Token]
     example: $(get-tfc-variable-id vault-token tfc-organization bounded-context-staging $(secret get TFC_API_TOKEN))
-  '
+  "
   KEY="$1"
   TFC_ORGANIZATION="$2"
   TFC_WORKSPACE="$3"
@@ -126,11 +127,11 @@ get-tfc-variable-id() {
 }
 
 get-tfc-variable-data() {
-  USAGE='
+  USAGE="
     Usage:
     > get-tfc-variable-data [key] [organization] [workspace-name] [TFC-API-Token]
     example: $(get-tfc-variable-data vault-token tfc-organization bounded-context-staging $(secret get TFC_API_TOKEN))
-  '
+  "
   KEY="$1"
   TFC_ORGANIZATION="$2"
   TFC_WORKSPACE="$3"
@@ -247,3 +248,31 @@ setenv() {
   # shellcheck disable=SC2046
   export $(grep -v '^#' "$1" | xargs)
 }
+
+refresh-asdf-nodejs-vers () {
+  nodejsvers=$(asdf list all nodejs)
+  for NODEVERSION in $(echo "14 16 18 20 22")
+    asdf install nodejs $(echo $nodejsvers | grep -e "^$NODEVERSION" | tail -1)
+}
+
+_truncated_env_output () {
+	if [[ "$1" == "full" ]]
+	then
+		shift
+		command env "$@"
+		return
+	fi
+	command env | while IFS= read -r line
+	do
+		key="${line%%=*}"
+		val="${line#*=}"
+		if [[ "$line" == *=* ]]
+		then
+			printf "%s=%s...\n" "$key" "${val:0:3}"
+		else
+			printf "%s\n" "$line"
+		fi
+	done
+}
+alias env=_truncated_env_output
+alias printenv=_truncated_env_output
