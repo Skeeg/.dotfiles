@@ -1,4 +1,1 @@
 # ~/.shellcheckrc
-
-# Don't suggest [ -n "$VAR" ] over [ ! -z "$VAR" ] 
-disable=SC1091
