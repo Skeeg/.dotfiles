@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env bash
 #
 # Dotfiles Bootstrap Script
 # 
@@ -72,19 +72,22 @@ backup_if_exists() {
     fi
     
     # Preserve the original path structure in the backup
-    local item_name="$(basename "$target")"
+    local item_name
+    item_name="$(basename "$target")"
     local backup_path="$BACKUP_DIR/$item_name"
     
     mv "$target" "$backup_path"
-    print_warning "Backed up existing $item_name to $backup_path"
-    return 0
+    if [[ -d "$backup_path" ]]; then
+      print_warning "Backed up existing directory $item_name to $backup_path"
+    else
+      print_warning "Backed up existing file $item_name to $backup_path"
+    fi
   elif [[ -L "$target" ]]; then
     # It's already a symlink, remove it
     rm "$target"
     print_info "Removed existing symlink: $target"
-    return 0
   fi
-  return 1
+  return 0
 }
 
 # Function to create symlink
@@ -95,7 +98,14 @@ create_symlink() {
   backup_if_exists "$target"
   
   ln -sf "$source" "$target"
-  print_success "Linked: $(basename "$target") -> $source"
+  
+  local item_name
+  item_name="$(basename "$target")"
+  if [[ -d "$source" ]]; then
+    print_success "Linked directory: $item_name -> $source"
+  else
+    print_success "Linked file: $item_name -> $source"
+  fi
 }
 
 # Main function to process dotfiles
@@ -104,12 +114,16 @@ link_dotfiles() {
   print_info "Dotfiles directory: $DOTFILES_DIR"
   echo ""
   
+  # Enable dotglob to include hidden files in * expansion
+  shopt -s dotglob nullglob
+  
   # Process all items in the dotfiles directory
-  for item in "$DOTFILES_DIR"/{.*,*}; do
+  for item in "$DOTFILES_DIR"/*; do
     # Skip if item doesn't exist (in case glob doesn't match)
     [[ -e "$item" ]] || continue
     
-    local basename="$(basename "$item")"
+    local basename
+    basename="$(basename "$item")"
     
     # Skip current and parent directory references
     [[ "$basename" == "." || "$basename" == ".." ]] && continue
