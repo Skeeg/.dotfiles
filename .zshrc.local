@@ -23,7 +23,10 @@ export CASE_SENSITIVE="true"
 
 # Enable command auto-correction.
 #ENABLE_CORRECTION="true"
-unsetopt correct_all
+if [ $(echo $SHELL | rev | cut -d"/" -f1 | rev) = "zsh" ];
+then
+  unsetopt correct_all
+fi
 
 # Display red dots whilst waiting for completion.
 export COMPLETION_WAITING_DOTS="true"
