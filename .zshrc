@@ -1,55 +1,10 @@
-# Homebrew
-# https://brew.sh/
-# Alias command to update all installed Homebrew modules
-alias upbrew="brew update && brew upgrade && brew cleanup && brew doctor && say 'brews done'"
+export DOTFILES=$HOME/.dotfiles
+alias dotfiles='cd $DOTFILES'
+alias dotfiles-install='. $DOTFILES/install.sh'
+alias dotfiles-config='. $DOTFILES/config.sh'
+alias dev='cd ~/Code'
 
-# Antibody
-# https://getantibody.github.io/
-# Run static antibody bundle to load ZSH and plugins
-# source $HOME/.antibody-bundle.sh
-# alias antibundle='antibody bundle < $HOME/.antibody-plugins > $HOME/.antibody-bundle.sh'
-
-# Dotfiles
-# https://www.atlassian.com/git/tutorials/dotfiles
-# Alias using git commands with local user config repo
-# e.g. config add ~/.zshrc to commit this file.
-alias config='git --git-dir=$HOME/.cfg --work-tree=$HOME'
-
-# Granted
-# https://granted.dev/
-# Alias to switch profile and populate temporary credentials
-alias awssso='source assume $1 --export'
-
-# Function to assume and open AWS Profile in the console
-aws-console() {
-	assume -c $1 -s $2;
-}
-# Ensure AWS SDK uses config for profile region etc
-export AWS_SDK_LOAD_CONFIG=1
-
-# Secrets
-# Internal tool at ~/bin/secret
-# Export secrets from Keychain into shell
-source $HOME/lib/secret.sh
-secret export NPM_TOKEN
-secret export BUILDKITE_TOKEN
-
-# Spaceship
-# https://spaceship-prompt.sh/
-# Fix unsightly colours in prompt ;)
-LSCOLORS=ExFxBxDxCxegedabagacad
-SPACESHIP_DIR_COLOR=blue
-SPACESHIP_PACKAGE_SHOW=false
-SPACESHIP_GIT_STATUS_COLOR=magenta
-
-# ZSH local
-# Add personal configs here
-if [ -f "$HOME/.zshrc.local" ]; then
-  source $HOME/.zshrc.local
-fi
-
-# Path
-# Extend defaults with Homebrew and user binary paths
+# Extend path with Homebrew and user binary paths
 export PATH=/usr/local/sbin:$PATH
 export PATH=/usr/bin:$PATH
 export PATH=/usr/sbin:$PATH
@@ -58,31 +13,45 @@ export PATH=/bin:$PATH
 export PATH=/private/tmp:$PATH
 export PATH=/usr/local/bin:$PATH
 export PATH=$HOME/bin:$PATH
+export PATH=$HOME/.local/bin:$PATH
 export PATH=/opt/homebrew/bin:$PATH
+export PATH=/opt/homebrew/sbin:$PATH
 export MANPATH=/usr/local/man:$MANPATH
 
-# ASDF
-# http://asdf-vm.com/
-# Add ASDF environment setup.
-source $(brew --prefix asdf)/libexec/asdf.sh
+# Source secrets lib first
+if [ -e "$DOTFILES/environment/secret.sh" ]; then
+  source "$DOTFILES/environment/secret.sh"
+  secret export NPM_TOKEN --silent
+  secret export ARTIFACTORY_NPM_TOKEN --silent
+  secret export HOME_TOWN --silent
+  secret export GIT_NAME --silent
+  secret export GIT_EMAIL --silent
+  secret export GIT_USERNAME --silent
+  secret export ARTIFACTORY_GLOBAL_PULL_USER --silent
+  secret export ARTIFACTORY_GLOBAL_PULL_TOKEN --silent
+fi
 
-# Use hyphen-insensitive completion
-HYPHEN_INSENSITIVE="true"
+# Source environment extensions
+[ -e "$DOTFILES/environment/npm.sh" ] && source "$DOTFILES/environment/npm.sh"
+[ -e "$DOTFILES/environment/asdf.sh" ] && source "$DOTFILES/environment/asdf.sh"
+[ -e "$DOTFILES/environment/awssdk.sh" ] && source $DOTFILES/environment/awssdk.sh
+[ -e "$DOTFILES/environment/certs.sh" ] && source $DOTFILES/environment/certs.sh
+[ -e "$DOTFILES/environment/git.sh" ] && source $DOTFILES/environment/git.sh
+[ -e "$DOTFILES/environment/granted.sh" ] && source $DOTFILES/environment/granted.sh
+[ -e "$DOTFILES/environment/killport.sh" ] && source $DOTFILES/environment/killport.sh
+[ -e "$DOTFILES/environment/pnpm.sh" ] && source $DOTFILES/environment/pnpm.sh
+[ -e "$DOTFILES/environment/search.sh" ] && source $DOTFILES/environment/search.sh
+[ -e "$DOTFILES/environment/starship.sh" ] && source $DOTFILES/environment/starship.sh
+[ -e "$DOTFILES/environment/upbrew.sh" ] && source $DOTFILES/environment/upbrew.sh
+[ -e "$DOTFILES/environment/utils.sh" ] && source $DOTFILES/environment/utils.sh
+[ -e "$DOTFILES/environment/weather.sh" ] && source $DOTFILES/environment/weather.sh
+[ -e "$DOTFILES/environment/yarn.sh" ] && source $DOTFILES/environment/yarn.sh
+[ -e "$DOTFILES/environment/zim.sh" ] && source $DOTFILES/environment/zim.sh
+[ -e "$DOTFILES/environment/zsh.sh" ] && source $DOTFILES/environment/zsh.sh
 
-# Change how often to auto-update (in days).
-export UPDATE_ZSH_DAYS=30
-
-# Enable command auto-correction.
-ENABLE_CORRECTION="true"
-
-# Display red dots whilst waiting for completion.
-COMPLETION_WAITING_DOTS="true"
-
-# Disable marking untracked files under VCS as dirty
-DISABLE_UNTRACKED_FILES_DIRTY="true"
-setopt extended_history
-HISTFILE=~/.zsh_history
-SAVEHIST=100000
-TIMESTAMP=$(date "+%Y-%m-%d %H:%M:%S")
-HIST_STAMPS="${TIMESTAMP}"
-export PATH="/opt/homebrew/opt/dotnet@6/bin:$PATH"
+[ -e "$HOME/.zshrc.local" ] && source $HOME/.zshrc.local
+# The following lines have been added by Docker Desktop to enable Docker CLI completions.
+[ -e "$HOME/.docker/completions" ] && fpath=(~/.docker/completions $fpath)
+autoload -Uz compinit
+# compinit
+# End of Docker CLI completions

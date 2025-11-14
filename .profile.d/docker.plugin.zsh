@@ -19,9 +19,15 @@ dn() {
   docker network ls
 }
 
-dps() {
-  docker ps --all
+docker-list() {
+  if [ "$1" = "full" ] || [ "$1" = "--full" ]; then
+    docker ps --format json | jq -s 'sort_by(.Names)' | jq -c '.[]';   elif [ "$1" = "ports" ] || [ "$1" = "--ports" ]; then
+    docker ps --format json | jq -s 'sort_by(.Names) | .[] | {Names, Image, Status, RunningFor, Ports}' | jq -sc '.[]';   else
+    docker ps --format json | jq -s 'sort_by(.Names) | .[] | {Names, Image, Status, RunningFor}' | jq -sc '.[]';   
+  fi; 
 }
+
+alias dps='docker-list'
 
 compose-up() {
   cd "$REPOPATH/$1"

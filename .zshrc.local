@@ -50,12 +50,12 @@ plugins=(
 )
 
 # Set oh-my-zsh theme
-source $HOME/.oh-my-zsh/custom/themes/powerlevel10k/powerlevel10k.zsh-theme
+[ -e "$HOME/.oh-my-zsh/custom/themes/powerlevel10k/powerlevel10k.zsh-theme" ] && source "$HOME/.oh-my-zsh/custom/themes/powerlevel10k/powerlevel10k.zsh-theme"
 
 # Load Zsh tools for syntax highlighting and autosuggestions
 export HOMEBREW_FOLDER="/opt/homebrew/share"
-source "${HOMEBREW_FOLDER}/zsh-autosuggestions/zsh-autosuggestions.zsh"
-source "${HOMEBREW_FOLDER}/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+[ -e "${HOMEBREW_FOLDER}/zsh-autosuggestions/zsh-autosuggestions.zsh" ] && source "${HOMEBREW_FOLDER}/zsh-autosuggestions/zsh-autosuggestions.zsh"
+[ -e "${HOMEBREW_FOLDER}/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ] && source "${HOMEBREW_FOLDER}/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 
 # Disable COMPFIX check
 export ZSH_DISABLE_COMPFIX="true"
@@ -73,3 +73,4 @@ done
 
 alias dotgit='/usr/bin/git --git-dir=$HOME/.personal/.cfg/ --work-tree=$HOME'
 
+[ -e "/opt/homebrew/opt/kube-ps1/share/kube-ps1.sh" ] && source "/opt/homebrew/opt/kube-ps1/share/kube-ps1.sh"

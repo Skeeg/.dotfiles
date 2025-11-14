@@ -59,44 +59,119 @@ Ensure it's working before proceeding...
 brew -v
 ```
 
-# Install
+# Installation
 
-This repo clones into the `$HOME` path for consistent cross-machine configuration.
-[See here for a tutorial on this approach][Dotfiles-Tutorial].
+This repository uses a symlink-based approach to manage dotfiles. The repository can be cloned anywhere on your system, and the bootstrap script will create symlinks from your home directory to the files in the repository.
 
-Run the [install script][Install-Script] below.
+## Quick Start
+
+1. **Clone the repository** (can be anywhere, but recommended location):
 
 ```sh
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Skeeg/.dotfiles/main/.personal/bin/install-dotfiles)"
+git clone https://github.com/Skeeg/.dotfiles.git ~/repo/.dotfiles
+cd ~/repo/.dotfiles
 ```
 
-What does this script do?
+2. **Run the bootstrap script**:
 
-1. Clones the repo to `~/.personal/.cfg` for working tree at `~/` including:
-	- A ZSH config file `.zshrc` with sensible defaults
-	- A ZSH "personal" config file `.zshrc.local` with some tuning
-	- `dotgit` alias to run git commands on this repo
-	- A plethora of functions and methods from setting up command logging history, to aliases, and some useful functions.
-2. Ignores any user files that aren't explicitly tracked
-3. Installs app bundle with Homebrew...
-    - [Visual Studio Code][VS-Code]
-    - [Many others, see the full list][BrewFile]
-    - There is [another Brewfile][PersonalBrew] stored as well that is not business oriented, but mainly here to show the methods for you to consider for experimentation.
-4. Compiles an [Antibody][Antibody] bundle of ZSH plugins to load on shell init
-5. Takes inputs for creating global git user config file
-6. Establishes a [baseline gitignore][GitIgnore] spec for common exclusions.
+```sh
+./bootstrap.sh
+```
+
+The bootstrap script will:
+- Create symlinks for all dotfiles and directories from the repository to your `$HOME` directory
+- Automatically backup any existing files/directories to `~/.dotfiles_backup_<timestamp>`
+- Merge git aliases from `.profile.d/merge_content/.gitconfig_aliases` into your `~/.gitconfig` (without removing existing content)
+- Preserve the ability to update dotfiles by pulling changes from the repository
+
+## What Gets Linked
+
+The bootstrap process creates symlinks for:
+- Configuration files (`.zshrc`, `.zprofile`, `.bash_profile`, etc.)
+- Configuration directories (`.config/`, `.personal/`, `.profile.d/`, etc.)
+- Other dotfiles and directories in the repository
+
+The following items are excluded from symlinking:
+- `.git/` (repository metadata)
+- `bootstrap.sh` and `merge_gitconfig.sh` (bootstrap scripts)
+- `readme.md` and documentation files
+- `context_portal/` and Docker-related files
+- `.profile.d/merge_content/` (used only for merging content, not linking)
+
+## Updating Your Dotfiles
+
+After the initial setup, you can update your dotfiles by:
+
+1. **Pull latest changes**:
+```sh
+cd ~/repo/.dotfiles  # or wherever you cloned the repo
+git pull
+```
+
+2. **Re-run bootstrap** (optional, only if new files were added):
+```sh
+./bootstrap.sh
+```
+
+Since your home directory files are symlinked to the repository, most updates will be immediately reflected without re-running the bootstrap script.
+
+## Git Config Aliases
+
+The bootstrap script automatically checks if the git aliases defined in `.profile.d/merge_content/.gitconfig_aliases` are present in your `~/.gitconfig`. If they're missing, they will be added. This process:
+- Creates `~/.gitconfig` if it doesn't exist
+- Adds the `[alias]` section if it's missing
+- Adds individual aliases that are missing (won't duplicate existing ones)
+- Creates a backup of your gitconfig before making changes
+
+You can also run the git config merge script independently:
+```sh
+./merge_gitconfig.sh
+```
+
+## Features
+
+This dotfiles setup includes:
+- A ZSH config file `.zshrc` with sensible defaults
+- A ZSH "personal" config file `.zshrc.local` with additional tuning
+- Useful git aliases for common workflows
+- Command logging history functionality
+- A collection of shell functions and aliases in `.profile.d/`
+- Configuration for various development tools and environments
 
 > 💁‍♂️ `.zshrc` will also source `.zshrc.local` if it exists, so add any personal configs there.
 
 ### Optional Apps
 
-Other apps can be manually installed, e.g recommended: [Alfred][Alfred], [Insomnia][Insomnia], [Warp][Warp].
+Other apps can be manually installed via Homebrew, e.g., recommended: [Alfred][Alfred], [Insomnia][Insomnia], [Warp][Warp].
 
-Check those out and you can run this command at any time.
-
-```
+```sh
 brew install alfred insomnia warp
 ```
+
+You can also use the Brewfiles included in `.personal/` directory to install work or personal app bundles:
+
+```sh
+# For work-related applications
+brew bundle --file=~/.personal/WorkBrewfile
+
+# For personal applications
+brew bundle --file=~/.personal/PersonalBrewfile
+```
+
+---
+
+# Migrating from Git Bare or Stow
+
+If you're migrating from a git bare repository or GNU Stow approach:
+
+1. **Backup your current setup**: Make sure you have a backup of any important configurations
+2. **Remove old setup**:
+   - For git bare: Remove the `.cfg` directory and any aliases/functions related to it
+   - For stow: Unstow all packages with `stow -D <package-name>`
+3. **Clone this repository** to your preferred location (e.g., `~/repo/.dotfiles`)
+4. **Run the bootstrap script** which will handle everything via symlinks
+
+The symlink approach is simpler and more dynamic than git bare or stow, requiring only standard shell commands and providing clear visibility of what's linked where.
 
 # Links
 

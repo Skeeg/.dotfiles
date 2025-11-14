@@ -1,0 +1,4 @@
+# Organizational Context Files
+.npmrc
+.yarnrc*
+.profile.d/_personalprefs.plugin.zsh

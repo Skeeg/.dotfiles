@@ -30,9 +30,12 @@ tftargetsraw() {
 tfcs() {
   terraform workspace select "${PWD##*/}-staging-us-west-2" && kubestage
 }
-ztfcp() {
+tfcu() {
+  terraform workspace select "${PWD##*/}-uat-us-west-2" && kubepuat
+}
+tfcp() {
   terraform workspace select "${PWD##*/}-production-us-west-2" && kubeprod
-  }
+}
 tfcdr() {
   terraform workspace select "${PWD##*/}-production-us-east-2-dr"
 }
@@ -61,11 +64,11 @@ refresh-tfenv-vers () {
   tfvers=$(tfenv list-remote)
   for TFVERSION in $(echo $tfvers | grep -e "^1\." | cut -d"." -f1-2 | uniq)
   do
-    tfenv install latest\:^$TFVERSION
+    tfenv install "latest:^$TFVERSION"
   done
   for TFVERSION in $(echo $tfvers | grep -e "^0\.1[2-6]\..*" | cut -d"." -f1-2 | uniq)
   do
-    TFENV_ARCH=amd64 tfenv install latest\:^$TFVERSION
+    TFENV_ARCH=amd64 tfenv install "latest:^$TFVERSION"
   done
 }
 

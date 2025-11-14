@@ -1,0 +1,32 @@
+[alias]
+	# Create a new branch after pulling latest changes
+	# Usage: git create feature-branch-name
+	create = !git pull && git checkout -b
+
+	# Stage all changes and commit with a signed commit
+	# Usage: git save "commit message"
+	save = !git add -A && git commit -S -m
+
+	# Undo the last commit, keeping changes staged
+	# Usage: git oops
+	oops = !git reset HEAD~
+
+	# Update a branch and rebase current branch onto it
+	# Usage: git refresh main
+	refresh = !sh -c '_CURRENT_BRANCH=$(git symbolic-ref --short HEAD) && git checkout $1 && git pull && git checkout $_CURRENT_BRANCH && git rebase $1' -
+
+	# Pretty branch list sorted by recent commits
+	# Usage: git br
+	br = branch --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) %(color:green)(%(committerdate:relative)) [%(authorname)]' --sort=-committerdate
+
+	# Pretty remote branch list sorted by recent commits
+	# Usage: git br-all
+	br-all = branch -r --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) %(color:green)(%(committerdate:relative)) [%(authorname)]' --sort=-committerdate
+
+	# Remove local references to deleted remote branches
+	# Usage: git br-clean
+	br-clean = !git remote prune origin
+
+	# Pretty log showing last 30 commits
+	# Usage: git lg
+	lg = !git log --pretty=format:\"%C(magenta)%h%Creset -%C(red)%d%Creset %s %C(dim green)(%cr) [%an]\" --abbrev-commit -30

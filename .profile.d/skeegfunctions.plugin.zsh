@@ -278,3 +278,18 @@ _truncated_env_output () {
 }
 alias env=_truncated_env_output
 alias printenv=_truncated_env_output
+alias status-vbox="sudo systemctl status vbox-dmz"
+alias restart-vbox="sudo systemctl restart vbox-dmz"
+alias start-vbox="sudo systemctl start vbox-dmz"
+alias stop-vbox="sudo systemctl stop vbox-dmz"
+
+lcd() {
+  if [ $# -le 0 ]
+  then
+    echo "launch vs code and change to that directory: lcd ~/repo/directory"
+    return 0
+  fi
+  code "$1"
+  cd "$1"
+}
+

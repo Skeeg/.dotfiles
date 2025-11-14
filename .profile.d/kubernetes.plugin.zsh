@@ -13,4 +13,5 @@ export KUBECONFIG KUBE_CONFIG_PATH
 
 # Kube contexts
 alias kubeprod="kubectx $SHARED_EKS_PRODUCTION_APP_CLUSTER ; "
+alias kubepuat="kubectx $SHARED_EKS_UAT_APP_CLUSTER ; "
 alias kubestage="kubectx $SHARED_EKS_STAGING_APP_CLUSTER ; "
