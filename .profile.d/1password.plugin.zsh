@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 1Password convenience functions
-# 1PASSWORD_ACCOUNT should be set in _personalprefs.plugin.zsh and exported.  Or you can add it as another input parameter to these functions if you prefer.
+# ONE_PASSWORD_ACCOUNT should be set in _personalprefs.plugin.zsh and exported.  Or you can add it as another input parameter to these functions if you prefer.
 
 update_1password_item() {
   # This function updates a 1Password item with the given username and password as a unique field.  The username is used as the field name, it will be stored as a password type field with the value of password in a protected manner.
@@ -14,7 +14,7 @@ update_1password_item() {
   local field="$2"
   local password="$3"
   
-  op item edit --account "$1PASSWORD_ACCOUNT" "$item_name" "${field}[password]=${password}"
+  op item edit --account "$ONE_PASSWORD_ACCOUNT" "$item_name" "${field}[password]=${password}"
 }
 
 get_1password_field() {
@@ -27,5 +27,5 @@ get_1password_field() {
   local item_name="$1"
   local field="$2" # Field is generally structured as a username or environment variable
 
-  op item get --account "$1PASSWORD_ACCOUNT" "$item_name" --fields label="$field" --reveal
+  op item get --account "$ONE_PASSWORD_ACCOUNT" "$item_name" --fields label="$field" --reveal
 }
