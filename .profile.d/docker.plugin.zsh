@@ -20,11 +20,41 @@ dn() {
 }
 
 docker-list() {
-  if [ "$1" = "full" ] || [ "$1" = "--full" ]; then
-    docker ps --format json | jq -s 'sort_by(.Names)' | jq -c '.[]';   elif [ "$1" = "ports" ] || [ "$1" = "--ports" ]; then
-    docker ps --format json | jq -s 'sort_by(.Names) | .[] | {Names, Image, Status, RunningFor, Ports}' | jq -sc '.[]';   else
-    docker ps --format json | jq -s 'sort_by(.Names) | .[] | {Names, Image, Status, RunningFor}' | jq -sc '.[]';   
-  fi; 
+  local show_all=false
+  local format="default"
+  
+  # Parse arguments
+  for arg in "$@"; do
+    case "$arg" in
+      all|--all)
+        show_all=true
+        ;;
+      full|--full)
+        format="full"
+        ;;
+      ports|--ports)
+        format="ports"
+        ;;
+    esac
+  done
+  
+  # Build docker ps command with array
+  local docker_cmd=(docker ps)
+  [[ "$show_all" == true ]] && docker_cmd+=(--all)
+  docker_cmd+=(--format json)
+  
+  # Apply format
+  case "$format" in
+    full)
+      "${docker_cmd[@]}" | jq -s 'sort_by(.Names)' | jq -c '.[]'
+      ;;
+    ports)
+      "${docker_cmd[@]}" | jq -s 'sort_by(.Names) | .[] | {Names, Image, Status, RunningFor, Ports}' | jq -sc '.[]'
+      ;;
+    *)
+      "${docker_cmd[@]}" | jq -s 'sort_by(.Names) | .[] | {Names, Image, Status, RunningFor}' | jq -sc '.[]'
+      ;;
+  esac
 }
 
 alias dps='docker-list'
