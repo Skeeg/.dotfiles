@@ -217,7 +217,7 @@ install_packages() {
       ;;
 
     arch)
-      sudo pacman -Sy --noconfirm starship fzf bat zsh-autosuggestions zsh-syntax-highlighting bash-completion
+      sudo pacman -Syu --noconfirm starship fzf bat zsh-autosuggestions zsh-syntax-highlighting bash-completion
       ;;
 
     debian|ubuntu)
