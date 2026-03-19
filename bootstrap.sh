@@ -160,6 +160,112 @@ merge_gitconfig_aliases() {
   fi
 }
 
+# Detect the OS using /etc/os-release on Linux or uname on macOS
+detect_os() {
+  if [[ "$(uname)" == "Darwin" ]]; then
+    echo "macos"
+  elif [[ -f /etc/os-release ]]; then
+    . /etc/os-release
+    echo "$ID"
+  else
+    echo "unknown"
+  fi
+}
+
+# Install required packages for the dotfiles plugin stack:
+#   starship  — cross-shell prompt (replaces omz + powerlevel10k)
+#   fzf       — fuzzy finder, Ctrl+R history search
+#   bat       — syntax-highlighted cat/man pager (ccat/cless aliases)
+#   zsh-autosuggestions   — fish-like inline suggestions (zsh only)
+#   zsh-syntax-highlighting — command coloring as you type (zsh only)
+#   bash-completion       — tab completion for bash
+install_packages() {
+  local os
+  os=$(detect_os)
+
+  print_info "Detected OS: $os"
+  print_info "Installing required packages..."
+  echo ""
+
+  case "$os" in
+    macos)
+      if ! command -v brew &>/dev/null; then
+        print_error "Homebrew not found. Install from https://brew.sh first, then re-run bootstrap."
+        return 1
+      fi
+      brew install starship fzf bat zsh-autosuggestions zsh-syntax-highlighting bash-completion@2
+      ;;
+
+    fedora|amzn)
+      if command -v starship &>/dev/null; then
+        print_info "starship already installed, skipping curl install"
+      else
+        print_info "Installing Starship via official installer..."
+        curl -sS https://starship.rs/install.sh | sh -s -- --yes
+      fi
+      yum install -y fzf bat zsh-autosuggestions zsh-syntax-highlighting bash-completion
+      ;;
+
+    alpine)
+      if command -v starship &>/dev/null; then
+        print_info "starship already installed, skipping curl install"
+      else
+        print_info "Installing Starship via official installer..."
+        curl -sS https://starship.rs/install.sh | sh -s -- --yes
+      fi
+      apk add fzf bat zsh-autosuggestions zsh-syntax-highlighting bash-completion
+      ;;
+
+    debian|ubuntu)
+      sudo apt-get update -qq
+      sudo apt-get install -y fzf bat bash-completion zsh-autosuggestions zsh-syntax-highlighting
+      if command -v starship &>/dev/null; then
+        print_info "starship already installed, skipping curl install"
+      else
+        print_info "Installing Starship via official installer (not in apt repos)..."
+        curl -sS https://starship.rs/install.sh | sh -s -- --yes
+      fi
+      ;;
+
+    *)
+      print_warning "Unknown OS '$os' — skipping package installation."
+      print_warning "Install manually: starship fzf bat zsh-autosuggestions zsh-syntax-highlighting"
+      return 0
+      ;;
+  esac
+
+  echo ""
+  print_success "Package installation complete."
+}
+
+# Generate a clean .zshrc.local if one does not already exist.
+# This file is machine-local (not tracked in git) and is sourced by both
+# .zshrc and .bashrc. Any zsh-specific content must be guarded with
+# [[ -n "$ZSH_VERSION" ]] to avoid bash parse errors.
+generate_zshrc_local() {
+  local zshrc_local="$HOME/.zshrc.local"
+  if [[ -f "$zshrc_local" ]]; then
+    print_info "~/.zshrc.local already exists — skipping generation."
+    print_info "  If migrating from oh-my-zsh/powerlevel10k, remove omz/p10k"
+    print_info "  blocks from that file; the plugin stack now handles them."
+    return 0
+  fi
+
+  cat > "$zshrc_local" << 'EOF'
+# ~/.zshrc.local — Machine-local shell overrides (not tracked in git)
+# Sourced at the end of both .zshrc and .bashrc for interactive sessions.
+# Any zsh-specific content must be guarded:  [[ -n "$ZSH_VERSION" ]] && ...
+
+# GPG TTY — required for GPG signing in terminal (ssh/commit signing)
+GPG_TTY=$(tty)
+export GPG_TTY
+
+# Add machine-specific paths, credentials, or tool integrations below.
+EOF
+
+  print_success "Generated ~/.zshrc.local (clean template — no omz/p10k)"
+}
+
 # Main execution
 main() {
   echo ""
@@ -167,21 +273,30 @@ main() {
   echo "  Dotfiles Bootstrap"
   echo "========================================"
   echo ""
-  
+
   # Check if we're in the right directory
   if [[ ! -d "$DOTFILES_DIR/.git" ]]; then
     print_error "This doesn't appear to be a git repository!"
     print_error "Please run this script from your dotfiles repository."
     exit 1
   fi
-  
+
+  # Install required packages
+  echo ""
+  install_packages
+
   # Link dotfiles
+  echo ""
   link_dotfiles
-  
+
   # Merge gitconfig aliases
   echo ""
   merge_gitconfig_aliases
-  
+
+  # Generate .zshrc.local if missing
+  echo ""
+  generate_zshrc_local
+
   echo ""
   echo "========================================"
   print_success "Bootstrap complete!"
@@ -189,11 +304,12 @@ main() {
   echo ""
   print_info "Next steps:"
   if [[ "$(uname)" == "Darwin" ]]; then
-    echo "  1. Open a new terminal or run: source ~/.zshrc (zsh) or source ~/.bashrc (bash)"
+    echo "  1. If migrating from omz/p10k: remove those blocks from ~/.zshrc.local"
+    echo "  2. Open a new terminal or: source ~/.zshrc (zsh) | source ~/.bashrc (bash)"
   else
     echo "  1. Open a new terminal or run: source ~/.bashrc"
   fi
-  echo "  2. Verify your configuration is working correctly"
+  echo "  2. Verify starship prompt, Ctrl+R fzf history, and man page colors"
   echo "  3. Remove backup directory if everything looks good"
   echo ""
 }

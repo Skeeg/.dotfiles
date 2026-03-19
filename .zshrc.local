@@ -73,7 +73,7 @@ fi
 [ -e ${HOME}/.p10k.zsh ] && source ${HOME}/.p10k.zsh
 
 # Local custom plugins
-for item in $(ls -1 ${HOME}/.profile.d/*.plugin.zsh); do
+for item in $(ls -1 ${HOME}/.profile.d/*.plugin.sh); do
   [ -e "${item}" ] && source "${item}"
 done
 
