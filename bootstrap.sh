@@ -188,7 +188,11 @@ main() {
   echo "========================================"
   echo ""
   print_info "Next steps:"
-  echo "  1. Open a new terminal or run: source ~/.zshrc"
+  if [[ "$(uname)" == "Darwin" ]]; then
+    echo "  1. Open a new terminal or run: source ~/.zshrc (zsh) or source ~/.bashrc (bash)"
+  else
+    echo "  1. Open a new terminal or run: source ~/.bashrc"
+  fi
   echo "  2. Verify your configuration is working correctly"
   echo "  3. Remove backup directory if everything looks good"
   echo ""
