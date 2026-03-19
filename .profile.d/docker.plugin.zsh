@@ -59,6 +59,44 @@ docker-list() {
 
 alias dps='docker-list'
 
+docker-display-build-commands() {
+  local image_id="$1"
+  local format="default"
+  
+  # Validate required argument
+  [[ -z "$image_id" ]] && { echo "usage: docker-display-build-commands IMAGE [format]"; return 1; }
+  
+  # Parse arguments
+  for arg in "${@:2}"; do
+    case "$arg" in
+      full|--full)
+        format="full"
+        ;;
+      compact|--compact)
+        format="compact"
+        ;;
+    esac
+  done
+  
+  # Build docker history command with array
+  local docker_cmd=(docker history --no-trunc --format '{{json .}}' "$image_id")
+  
+  # Apply format
+  case "$format" in
+    full)
+      "${docker_cmd[@]}" | jq -sc 'sort_by(.CreatedAt) | .[] | {CreatedAt, CreatedBy, Size}'
+      ;;
+    compact)
+      "${docker_cmd[@]}" | jq -sr 'sort_by(.CreatedAt) | .[] | .CreatedBy'
+      ;;
+    *)
+      "${docker_cmd[@]}" | jq -sc 'sort_by(.CreatedAt) | .[] | {CreatedBy, CreatedAt}'
+      ;;
+  esac
+}
+
+alias dbuildlayers='docker-display-build-commands'
+
 compose-up() {
   cd "$REPOPATH/$1"
   docker compose up -d --build

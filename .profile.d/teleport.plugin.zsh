@@ -86,3 +86,46 @@ update-teleport-client () {
 		echo "Teleport client is up to date"
 	fi
 }
+
+teleusersearch() {
+  if [ -z "$1" ]; then
+    echo "Usage: teleusersearch <partial-name>"
+    return 0
+  fi
+
+  # Regex substring match (test)
+  tctl get users --format=json | jq -r --arg u "$1" \
+    '.[] | select(.metadata.name | test($u; "i")) | .metadata.name'
+}
+
+teleusergroups() {
+  if [ -z "$1" ]; then
+    echo "Usage: teleusergroups [-a] <user-name>"
+    echo "  -a : Show all groups (Default: only shows 'exp_' groups)"
+    return 0
+  fi
+
+  if [ "$1" = "-a" ]; then
+    USER_NAME="$2"
+    JQ_FILTER='.spec.traits.groups'
+  else
+    USER_NAME="$1"
+    JQ_FILTER='.spec.traits.groups | map(select(test("^exp_"; "i")))'
+  fi
+
+  tctl get users --format=json | jq -r --arg u "$USER_NAME" \
+    '.[] | select((.metadata.name | ascii_downcase) == ($u | ascii_downcase)) | .metadata.name, "---", ('"$JQ_FILTER"' | sort | .[])'
+}
+
+telegroupmembers() {
+  if [ -z "$1" ]; then
+    echo "Usage: telegroupmembers <group-name>"
+    echo "Examples:"
+    echo "  telegroupmembers exp_devops"
+    echo "  telegroupmembers 'North America'"
+    return 0
+  fi
+
+  tctl get users --format=json | jq -r --arg g "$1" \
+    '.[] | select(.spec.traits.groups // [] | map(ascii_downcase) | any(. == ($g | ascii_downcase))) | .metadata.name'
+}

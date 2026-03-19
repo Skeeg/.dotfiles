@@ -23,10 +23,6 @@ export CASE_SENSITIVE="true"
 
 # Enable command auto-correction.
 #ENABLE_CORRECTION="true"
-if [ $(echo $SHELL | rev | cut -d"/" -f1 | rev) = "zsh" ];
-then
-  unsetopt correct_all
-fi
 
 # Display red dots whilst waiting for completion.
 export COMPLETION_WAITING_DOTS="true"
@@ -65,6 +61,13 @@ export ZSH_DISABLE_COMPFIX="true"
 
 # # Load oh-my-zsh framework
 source "${ZSH}/oh-my-zsh.sh"
+
+# Disable spell correction (ENABLE_CORRECTION=true is set in dotfiles/environment/zsh.sh
+# and oh-my-zsh applies setopt correct_all — unset it here after omz loads)
+if [ $(echo $SHELL | rev | cut -d"/" -f1 | rev) = "zsh" ];
+then
+  unsetopt correct_all
+fi
 
 # Powerlevel10k configuration
 [ -e ${HOME}/.p10k.zsh ] && source ${HOME}/.p10k.zsh

@@ -73,3 +73,19 @@ aws ec2 get-password-data --instance-id "$(echo "$data" | jq --raw-output .Insta
   --priv-launch-key "$HOME/.ssh/$(echo "$data" | jq --raw-output .Key)".pem | \
   jq --raw-output .PasswordData;
 }
+
+ae() {
+  assume $1 --export
+  assume --unset
+}
+
+ae-nonprod() {
+  for ACCOUNT in staging_developer uat_developer ps_dev_readonlycore ps_stage_readonlycore ps_uat_readonlycore;
+  do
+    ae $ACCOUNT
+  done
+}
+
+ae-prod() {
+  for ACCOUNT in production_developer ps_prod_readonlycore; do assume $ACCOUNT --export; done; assume --unset
+}

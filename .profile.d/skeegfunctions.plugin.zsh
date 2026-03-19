@@ -300,3 +300,118 @@ lcd() {
   cd "$1"
 }
 
+generate_base64_key() {
+  length="${1:-32}"
+  openssl rand "$length" | base64 | tr -d '\n'
+}
+
+hash_api_key() {
+  local key="$1"
+  echo -n "$key" | sha256sum | xxd -r -p | base64
+}
+
+generate_uuid_key() {
+  openssl rand -hex 16 | sed 's/\(.\{8\}\)\(.\{4\}\)\(.\{4\}\)\(.\{4\}\)\(.\{12\}\)/\1-\2-\3-\4-\5/'
+}
+
+get_date_string() {
+  date -u +"%Y-%m-%d" 2>/dev/null || date -u -j +"%Y-%m-%d"
+}
+
+get_1password_field () {
+  local entry_name="$1"
+	local field="$2"
+  local op_account="${3:-pluralsight.1password.com}"
+  local op_vault="${4:-Shared-Ops}"
+	if [ $# -lt 2 ]
+
+	then
+		echo "Error: get_1password_item requires at least 2 arguments: entry_name, field" >&2
+		return 1
+	fi
+
+	op item get --account "$op_account" "$entry_name" --fields label="$field" --vault "$op_vault" --reveal
+}
+
+create_1password_entry() {
+  local entry_name="$1"
+  local op_account="${2:-pluralsight.1password.com}"
+  local op_vault="${3:-Shared-Ops}"
+  
+  if [ $# -ne 3 ]; then
+    echo "Error: get_1password_item requires 3 arguments: entry_name, op_account, op_vault" >&2
+    return 1
+  fi
+  
+  if ! command -v op &> /dev/null; then
+    echo "Error: 1Password CLI (op) is not installed" >&2
+    return 1
+  fi
+
+  if op item get --account "$op_account" --vault="$op_vault" "$entry_name" &> /dev/null; then
+    return 0
+  else
+    op item create --account "$op_account" --title="$entry_name" --category=login username="Services will all have their own entries as unique, protected fields." --vault="$op_vault"
+  fi
+}
+
+update_1password_item() {
+  # This function updates a 1Password item with the given username and password as a unique field.  The username is used as the field name, it will be stored as a password type field with the value of password in a protected manner.
+  if [ $# -ne 5 ]; then
+    echo "Error: update_1password_item requires 5 arguments: entry_name, field, password, account, vault" >&2
+    return 1
+  fi
+
+  local entry_name="$1"
+  local field="$2"
+  local password="$3"
+  local op_account="${4:-pluralsight.1password.com}"
+  local op_vault="${5:-Shared-Ops}"
+
+  # Use proper syntax: field_name[field_type]=value
+  # For 1Password CLI v2, use this syntax to add/update password fields
+  # echo "Checking if field $field exists in entry $entry_name"
+  API_KEY_FOUND=$(get_1password_field "$entry_name" "$field" "$op_account" "$op_vault" 2>&1 )
+  if [[ $API_KEY_FOUND != *"ERROR"* ]]; then
+    echo "Password field already populated for $field in $entry_name" >&2
+    return 0
+  else
+    op item edit --account "$op_account" --vault "$op_vault" "$entry_name" "${field}[password]=${password}"
+  fi
+}
+
+generate_api_keys_1password() {
+  # This function generates API keys for each bounded context listed in the provided file and stores them in a 1Password entry as unique fields.
+  # Usage: generate_api_keys_1password context_list_file entry_name key_type op_account op_vault
+  local context_list_file="$1"
+  local entry_name="$2"
+  local key_type="${3:-base64}"  # default to base64 if not specified
+  local op_account="${4:-pluralsight.1password.com}"
+  local op_vault="${5:-Shared-Ops}"
+
+  if [ $# -lt 2 ]; then
+    echo "Error: generate_api_keys_1password requires at least 2 arguments: context_list_file, entry_name" >&2
+    return 1
+  fi
+
+  if [ $# -gt 5 ]; then
+    echo "Error: generate_api_keys_1password only uses 5 arguments: context_list_file, entry_name, key_type, op_account, op_vault" >&2
+    return 1
+  fi
+  
+  if ! command -v op &> /dev/null; then
+    echo "Error: 1Password CLI (op) is not installed" >&2
+    return 1
+  fi
+  
+  create_1password_entry "$entry_name" "$op_account" "$op_vault"
+
+  while IFS=$'\n' read -r line; do
+    if [ "$key_type" = "uuid" ]; then
+      API_KEY=$(generate_uuid_key)
+    else
+      API_KEY=$(generate_base64_key)
+    fi
+    update_1password_item "$entry_name" "$line" "$API_KEY" "$op_account" "$op_vault"
+  done <<< "$(cat "$context_list_file")"
+}
