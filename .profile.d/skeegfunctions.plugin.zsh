@@ -25,6 +25,8 @@ rawurlencode() {
 }
 
 jenv-setup() {
+  # macOS only — uses Homebrew openjdk paths
+  if [[ "$(uname)" != "Darwin" ]]; then echo "jenv-setup: macOS only"; return 1; fi
   jenv add /opt/homebrew/opt/openjdk/
   jenv add /opt/homebrew/opt/openjdk@11
   jenv add /opt/homebrew/opt/openjdk@17
@@ -35,6 +37,8 @@ EOF
 
 #OS Conveniences
 flushdns() {
+  # macOS only — flushes mDNS responder cache
+  if [[ "$(uname)" != "Darwin" ]]; then echo "flushdns: macOS only (try 'sudo systemd-resolve --flush-caches' on Linux)"; return 1; fi
   sudo killall -HUP mDNSResponder
 }
 
@@ -49,6 +53,8 @@ gittyupsalt() {
 }
 
 secret () {
+  # macOS only — uses macOS keychain via the 'security' command
+  if [[ "$(uname)" != "Darwin" ]]; then echo "secret: macOS keychain only. Use a password manager or env file on Linux."; return 1; fi
   # Credit to https://github.com/ACloudGuru/node-dev-dotfiles/blob/trunk/lib/secret.sh
 	USAGE="
     Usage:
@@ -289,6 +295,7 @@ lcd() {
     echo "launch vs code and change to that directory: lcd ~/repo/directory"
     return 0
   fi
+  if ! command -v code &>/dev/null; then echo "lcd: 'code' CLI not found — install VS Code and enable shell command."; return 1; fi
   code "$1"
   cd "$1"
 }

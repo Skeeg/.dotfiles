@@ -16,9 +16,9 @@ alias less='less -FSRXc'                           # Preferred 'less'  implement
 alias ssh='ssh -A'                                 # Preferred 'ssh'   implementation
 alias ping='ping -c 5'                             # Preferred 'ping'  implementation
 alias wget='wget -c'                               # Preferred 'wget'  implementation
-alias edit='atom'                                  # Preferred 'edit'  implementation
-alias lc='colorls'
-alias lca='colorls -al'
+command -v atom &>/dev/null && alias edit='atom'   # Preferred 'edit'  implementation (macOS/atom)
+command -v colorls &>/dev/null && alias lc='colorls'
+command -v colorls &>/dev/null && alias lca='colorls -al'
 
 ### Ryan Peay additions.
 if [ ${SHELL##*/} = "bash" ]; then
