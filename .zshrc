@@ -62,7 +62,6 @@ if [[ -d "${HOME}/.profile.d" ]]; then
   fi
 fi
 
-[ -e "$HOME/.zshrc.local" ] && source $HOME/.zshrc.local
 # The following lines have been added by Docker Desktop to enable Docker CLI completions.
 [ -e "$HOME/.docker/completions" ] && fpath=(~/.docker/completions $fpath)
 autoload -Uz compinit

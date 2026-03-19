@@ -16,7 +16,10 @@ if [[ -n "$ZSH_VERSION" ]]; then
   # Regenerate .zcompdump at most once per day — avoids ~200ms hit on every
   # shell open while still picking up new completions after installs.
   local _zcompdump="${ZDOTDIR:-$HOME}/.zcompdump"
-  if [[ -n ${_zcompdump}(#qN.mh+24) ]]; then
+  # Regenerate at most once per day. Portable find-based check replaces the
+  # zsh glob qualifier (N.mh+24) which bash cannot parse even inside a
+  # [[ -n "$ZSH_VERSION" ]] guard — bash parses the whole file before branching.
+  if [[ ! -f "${_zcompdump}" ]] || [[ -n "$(find "${_zcompdump}" -mmin +1440 2>/dev/null)" ]]; then
     compinit
   else
     compinit -C

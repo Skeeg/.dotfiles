@@ -20,9 +20,4 @@ if [[ $- == *i* ]] && [[ -z "$RSYNC_PROTECT_ARGS" ]]; then
     fi
   fi
 
-  # Machine-local overrides (not tracked in git).
-  # Shared with .zshrc — any zsh-specific content must be guarded with
-  # [[ -n "$ZSH_VERSION" ]] to avoid bash parse errors.
-  [[ -f "${HOME}/.zshrc.local" ]] && source "${HOME}/.zshrc.local"
-
 fi

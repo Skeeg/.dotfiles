@@ -2,3 +2,6 @@
 .npmrc
 .yarnrc*
 .profile.d/_personalprefs.plugin.zsh
+
+# Machine-local shell overrides — not tracked, not symlinked
+.zshrc.local

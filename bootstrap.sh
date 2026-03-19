@@ -238,33 +238,6 @@ install_packages() {
   print_success "Package installation complete."
 }
 
-# Generate a clean .zshrc.local if one does not already exist.
-# This file is machine-local (not tracked in git) and is sourced by both
-# .zshrc and .bashrc. Any zsh-specific content must be guarded with
-# [[ -n "$ZSH_VERSION" ]] to avoid bash parse errors.
-generate_zshrc_local() {
-  local zshrc_local="$HOME/.zshrc.local"
-  if [[ -f "$zshrc_local" ]]; then
-    print_info "~/.zshrc.local already exists — skipping generation."
-    print_info "  If migrating from oh-my-zsh/powerlevel10k, remove omz/p10k"
-    print_info "  blocks from that file; the plugin stack now handles them."
-    return 0
-  fi
-
-  cat > "$zshrc_local" << 'EOF'
-# ~/.zshrc.local — Machine-local shell overrides (not tracked in git)
-# Sourced at the end of both .zshrc and .bashrc for interactive sessions.
-# Any zsh-specific content must be guarded:  [[ -n "$ZSH_VERSION" ]] && ...
-
-# GPG TTY — required for GPG signing in terminal (ssh/commit signing)
-GPG_TTY=$(tty)
-export GPG_TTY
-
-# Add machine-specific paths, credentials, or tool integrations below.
-EOF
-
-  print_success "Generated ~/.zshrc.local (clean template — no omz/p10k)"
-}
 
 # Main execution
 main() {
@@ -293,10 +266,6 @@ main() {
   echo ""
   merge_gitconfig_aliases
 
-  # Generate .zshrc.local if missing
-  echo ""
-  generate_zshrc_local
-
   echo ""
   echo "========================================"
   print_success "Bootstrap complete!"
@@ -304,8 +273,7 @@ main() {
   echo ""
   print_info "Next steps:"
   if [[ "$(uname)" == "Darwin" ]]; then
-    echo "  1. If migrating from omz/p10k: remove those blocks from ~/.zshrc.local"
-    echo "  2. Open a new terminal or: source ~/.zshrc (zsh) | source ~/.bashrc (bash)"
+    echo "  1. Open a new terminal or: source ~/.zshrc (zsh) | source ~/.bashrc (bash)"
   else
     echo "  1. Open a new terminal or run: source ~/.bashrc"
   fi
