@@ -216,6 +216,10 @@ install_packages() {
       apk add fzf bat zsh-autosuggestions zsh-syntax-highlighting bash-completion
       ;;
 
+    arch)
+      sudo pacman -Sy --noconfirm starship fzf bat zsh-autosuggestions zsh-syntax-highlighting bash-completion
+      ;;
+
     debian|ubuntu)
       sudo apt-get update -qq
       sudo apt-get install -y fzf bat bash-completion zsh-autosuggestions zsh-syntax-highlighting
