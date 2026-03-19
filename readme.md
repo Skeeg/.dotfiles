@@ -87,7 +87,7 @@ The bootstrap script will:
 ## What Gets Linked
 
 The bootstrap process creates symlinks for:
-- Configuration files (`.zshrc`, `.zprofile`, `.bash_profile`, etc.)
+- Configuration files (`.zshrc`, `.bash_profile`, etc.)
 - Configuration directories (`.config/`, `.personal/`, `.profile.d/`, etc.)
 - Other dotfiles and directories in the repository
 
