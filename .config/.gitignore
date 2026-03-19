@@ -1,0 +1,6 @@
+# Ignore everything in .config by default.
+# Only the files and directories explicitly listed below are tracked.
+*
+!.gitignore
+!git/
+!starship.toml

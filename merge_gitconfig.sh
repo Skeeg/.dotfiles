@@ -70,7 +70,7 @@ main() {
       
       # Extract alias name (everything before the '=')
       if [[ "$line" =~ ^[[:space:]]*([a-zA-Z0-9_-]+)[[:space:]]*= ]]; then
-        local alias_name="${match[1]}"
+        local alias_name="${BASH_REMATCH[1]}"
         
         # Check if this alias exists in user's gitconfig
         if ! git config --file "$USER_GITCONFIG" --get "alias.$alias_name" &>/dev/null; then

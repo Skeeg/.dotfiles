@@ -21,13 +21,6 @@ command -v colorls &>/dev/null && alias lc='colorls'
 command -v colorls &>/dev/null && alias lca='colorls -al'
 
 ### Ryan Peay additions.
-if [ ${SHELL##*/} = "bash" ]; then
-  alias ls='ls -Fh'                                # Preferred 'ls'    implementation
-fi
-
-if [ ${SHELL##*/} = "zsh" ]; then
-  alias ls='ls -GFh'                               # Preferred 'ls'    implementation
-fi
-
-alias ll='ls -lha'
+# ls and ll aliases are defined in colors.plugin.zsh with platform-aware
+# color flags (--color=auto on Linux, -G on macOS). Not duplicated here.
 alias sshk='ssh -o "StrictHostKeyChecking no" -o UserKnownHostsFile=/dev/null'

@@ -51,18 +51,17 @@ fi
 
 # Source profile.d plugins (cross-platform root level)
 if [[ -d "${HOME}/.profile.d" ]]; then
-  for plugin in "${HOME}"/.profile.d/*.plugin.zsh(N); do
+  for plugin in "${HOME}"/.profile.d/*.plugin.sh(N); do
     source "$plugin"
   done
   # macOS: additionally load macOS-exclusive plugins
   if [[ "$(uname)" == "Darwin" ]] && [[ -d "${HOME}/.profile.d/macos" ]]; then
-    for plugin in "${HOME}"/.profile.d/macos/*.plugin.zsh(N); do
+    for plugin in "${HOME}"/.profile.d/macos/*.plugin.sh(N); do
       source "$plugin"
     done
   fi
 fi
 
-[ -e "$HOME/.zshrc.local" ] && source $HOME/.zshrc.local
 # The following lines have been added by Docker Desktop to enable Docker CLI completions.
 [ -e "$HOME/.docker/completions" ] && fpath=(~/.docker/completions $fpath)
 autoload -Uz compinit
