@@ -52,9 +52,9 @@ untracked = "[?${count}](blue)"
 deleted  = "[-${count}](red)"
 
 [character]
-success_symbol = "[$](bold green)"
-error_symbol   = "[$](bold red)"
-vimcmd_symbol  = "[<](green)"
+success_symbol = "[❯](green)"
+error_symbol   = "[❯](red)"
+vimcmd_symbol  = "[❮](green)"
 
 [cmd_duration]
 min_time = 2000
