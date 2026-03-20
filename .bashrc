@@ -3,6 +3,9 @@
 # Sourced by .bash_profile (login shells) and directly by interactive non-login shells.
 # Guard ensures this is a no-op for non-interactive sessions (rsync, scp, scripts, etc.).
 
+# PATH — set before the interactive guard so scripts that source .bashrc also benefit
+export PATH="$HOME/.local/bin:$PATH"
+
 if [[ $- == *i* ]] && [[ -z "$RSYNC_PROTECT_ARGS" ]]; then
 
   if [[ -d "${HOME}/.profile.d" ]]; then
