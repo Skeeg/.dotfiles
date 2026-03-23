@@ -32,6 +32,18 @@ shellcheck .profile.d/*.sh .profile.d/macos/*.sh
 
 `bootstrap.sh` symlinks everything in the repo root to `$HOME` except: `.git/`, `bootstrap.sh`, `merge_gitconfig.sh`, `readme.md`, `CLAUDE.md`, and the `.personal/` folder contents. The `.profile.d/merge_content/` subdirectory is also excluded — it holds git alias definitions used only by `merge_gitconfig.sh`.
 
+### Directory Clobbering Risk
+
+Bootstrap symlinks **entire root-level directories** as a single symlink, not file-by-file. This has two important consequences:
+
+**Safe — adding files inside an already-tracked directory:**
+If a directory like `.config/` already exists in the repo and is symlinked as `~/.config`, adding a new subdirectory (e.g., `.config/claude/`) requires no re-bootstrap — the new path is immediately accessible via the existing symlink. You do need to explicitly allow the new subdirectory in `.config/.gitignore`, which uses an allowlist pattern (`*` + `!exceptions`).
+
+**Dangerous — adding a root-level item that shadows an existing `$HOME` directory:**
+If you add `.claude/` at the repo root, bootstrap will replace `~/.claude` (which contains Claude Code's state, history, and settings) with a symlink to the repo directory — **destroying all existing content** after backing it up. The same risk applies to any directory that already exists in `$HOME` (e.g., `.ssh/`, `.gnupg/`).
+
+**Rule of thumb:** place config files for tools that manage their own state directories (Claude Code, SSH, GPG, etc.) inside `.config/<tool>/` rather than at the repo root. Use plugin scripts (`.profile.d/`) or helper functions (e.g., `start-claude`) to copy or apply those files at runtime rather than symlinking them directly.
+
 ### Plugin System (`.profile.d/`)
 
 Shell functionality is split into per-tool plugin files (`*.plugin.sh`). Both `.zshrc` and `.bashrc` source all root-level plugins on startup; macOS-exclusive plugins live under `.profile.d/macos/` and are only loaded on Darwin. `.zshrc.local` (not tracked in git) can override or extend them. Each plugin is self-contained — to disable a feature, comment out its source line in `.zshrc.local`.
