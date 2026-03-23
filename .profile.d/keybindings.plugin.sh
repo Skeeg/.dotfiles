@@ -14,12 +14,12 @@ if [ -n "$ZSH_VERSION" ]; then
   # iTerm2 must be configured to send \e[13;2u for Shift+Enter.
   # tmux passes this through via `extended-keys on` in .tmux.conf.
   # Claude Code intercepts it directly via ~/.claude/keybindings.json.
-  _zle_shift_enter() { LBUFFER+=$'\n' }
+  _zle_shift_enter() { LBUFFER+=$'\n'; }
   zle -N _zle_shift_enter
   bindkey '\e[13;2u' _zle_shift_enter
 
   # Alt+Enter: same behavior. iTerm2 sends \033\r when Option is set to Esc+.
-  _zle_alt_enter() { LBUFFER+=$'\n' }
+  _zle_alt_enter() { LBUFFER+=$'\n'; }
   zle -N _zle_alt_enter
   bindkey '\033\r' _zle_alt_enter
 fi
