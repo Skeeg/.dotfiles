@@ -12,7 +12,7 @@ if [ -n "$ZSH_VERSION" ]; then
 
   # Shift+Enter: insert a literal newline into the ZLE buffer (multi-line editing).
   # iTerm2 must be configured to send \e[13;2u for Shift+Enter.
-  # tmux passes this through via `extended-keys on` in .tmux.conf.
+  # tmux passes this through via `extended-keys always` in .tmux.conf.
   # Claude Code intercepts it directly via ~/.claude/keybindings.json.
   _zle_shift_enter() { LBUFFER+=$'\n'; }
   zle -N _zle_shift_enter
@@ -22,4 +22,16 @@ if [ -n "$ZSH_VERSION" ]; then
   _zle_alt_enter() { LBUFFER+=$'\n'; }
   zle -N _zle_alt_enter
   bindkey '\033\r' _zle_alt_enter
+
+elif [ -n "$BASH_VERSION" ]; then
+  # Bash readline equivalents using bind -x (requires bash 4+).
+  # READLINE_LINE/READLINE_POINT are the bash analogues of zsh's LBUFFER.
+  _rl_insert_newline() {
+    READLINE_LINE="${READLINE_LINE:0:$READLINE_POINT}"$'\n'"${READLINE_LINE:$READLINE_POINT}"
+    READLINE_POINT=$(( READLINE_POINT + 1 ))
+  }
+  # Shift+Enter (CSI u: \e[13;2u)
+  bind -x '"\e[13;2u": _rl_insert_newline'
+  # Alt+Enter (\e\r — sent when Option/Meta is configured as Esc+)
+  bind -x '"\e\r": _rl_insert_newline'
 fi
