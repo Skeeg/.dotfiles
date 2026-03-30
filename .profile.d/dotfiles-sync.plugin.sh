@@ -58,9 +58,10 @@ _dotfiles_sync() {
   touch "$ts_file"
 
   # Pull in the background — ff-only avoids auto-merges, output suppressed.
-  # Redirect stdin from /dev/null and wrap in a subshell so the job never
-  # enters the interactive job table (prevents "[N] PID" and "done" noise).
-  { git -C "$dir" pull --quiet --ff-only >/dev/null 2>&1 </dev/null & } 2>/dev/null
+  # Run inside a subshell () so the backgrounded job is owned by the subshell,
+  # not the interactive parent shell.  This prevents zsh from printing
+  # "[N] PID" on start and "done" on completion.
+  (git -C "$dir" pull --quiet --ff-only >/dev/null 2>&1 </dev/null &)
 }
 
 _dotfiles_sync
