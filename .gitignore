@@ -6,3 +6,12 @@
 
 # Machine-local shell overrides — not tracked, not symlinked
 .zshrc.local
+
+# Dotfiles sync throttle timestamp — local state, not shared
+.dotfiles_pull_ts
+
+# Context Portal MCP
+context_portal*
+
+# VSCode Settings
+.vscode/settings.json
