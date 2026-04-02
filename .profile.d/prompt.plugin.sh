@@ -13,7 +13,7 @@
 if [[ -n "$SSH_CONNECTION" ]]; then
   if [[ -n "$ZSH_VERSION" ]]; then
     autoload -Uz add-zsh-hook
-    _ssh_tab_title() { [[ -z "$TMUX" ]] && print -Pn "\e]1;%m\a" }
+    _ssh_tab_title() { [[ -z "$TMUX" ]] && print -Pn "\e]1;%m\a"; }
     add-zsh-hook precmd _ssh_tab_title
   elif [[ -n "$BASH_VERSION" ]]; then
     PROMPT_COMMAND='[[ -z "$TMUX" ]] && printf "\e]1;%s\a" "${HOSTNAME%%.*}";'"${PROMPT_COMMAND:-}"
