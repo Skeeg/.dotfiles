@@ -7,17 +7,30 @@
 #   Linux:  curl -sS https://starship.rs/install.sh | sh -s -- --yes
 #           (not in standard apt repos; bootstrap.sh handles this)
 
-# In SSH sessions without tmux, set the iTerm2 tab title to the hostname.
-# When inside tmux (local or remote), tmux set-titles owns the tab title instead.
-# Uses add-zsh-hook so this coexists with Starship's own precmd hooks.
-if [[ -n "$SSH_CONNECTION" ]]; then
+# Set the iTerm2 tab title on every prompt.
+# Inside tmux (local or remote), tmux set-titles owns the title — skip.
+# Outside tmux, always set to the short hostname so the title self-heals
+# after ssh, tmux, or any other context change.
+# Applies the same *-MAC normalization used in .tmux.conf set-titles-string.
+_set_tab_title() {
+  [[ -n "$TMUX" ]] && return
+  local host dir
   if [[ -n "$ZSH_VERSION" ]]; then
-    autoload -Uz add-zsh-hook
-    _ssh_tab_title() { [[ -z "$TMUX" ]] && print -Pn "\e]1;%m\a"; }
-    add-zsh-hook precmd _ssh_tab_title
-  elif [[ -n "$BASH_VERSION" ]]; then
-    PROMPT_COMMAND='[[ -z "$TMUX" ]] && printf "\e]1;%s\a" "${HOSTNAME%%.*}";'"${PROMPT_COMMAND:-}"
+    host=${(%):-%m}
+    dir=${PWD:t}
+  else
+    host=${HOSTNAME%%.*}
+    dir=${PWD##*/}
   fi
+  host=${host/*-MAC/MAC}
+  printf "\e]1;%s: %s\a" "$host" "$dir"
+}
+
+if [[ -n "$ZSH_VERSION" ]]; then
+  autoload -Uz add-zsh-hook
+  add-zsh-hook precmd _set_tab_title
+elif [[ -n "$BASH_VERSION" ]]; then
+  PROMPT_COMMAND="_set_tab_title;${PROMPT_COMMAND:-}"
 fi
 
 if command -v starship &>/dev/null; then
