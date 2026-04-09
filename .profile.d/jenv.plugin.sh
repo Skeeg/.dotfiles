@@ -1,4 +1,4 @@
 
 
-#Initializes jenv
-if which jenv > /dev/null; then eval "$(jenv init -)"; fi
+# Initializes jenv
+if command -v jenv &>/dev/null; then eval "$(jenv init -)"; fi
