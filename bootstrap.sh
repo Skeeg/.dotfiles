@@ -20,6 +20,9 @@ NC='\033[0m' # No Color
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
 BACKUP_DIR="$HOME/.dotfiles_backups/$(date +%Y_%m_%d_%H%M%S)"
 
+# Update mode flag — set to true via --update argument in main()
+_update_mode=false
+
 # Files and directories to exclude from symlinking
 EXCLUDE_LIST=(
   ".git"
@@ -172,6 +175,70 @@ detect_os() {
   fi
 }
 
+# Install blesh (ble.sh) nightly to ~/.local/share/blesh/
+# Used on all Linux platforms — not in standard package repos.
+# The nightly URL is stable and always points to the latest build.
+install_blesh() {
+  if [[ -d "$HOME/.local/share/blesh" ]]; then
+    print_info "blesh already installed, skipping"
+    return 0
+  fi
+  print_info "Installing blesh nightly (bash autosuggestions) to ~/.local/share/blesh..."
+  mkdir -p "$HOME/.local/share"
+  curl -sL https://github.com/akinomyoga/ble.sh/releases/download/nightly/ble-nightly.tar.xz \
+    | tar -xJ -C "$HOME/.local/share"
+  mv "$HOME/.local/share/ble-nightly" "$HOME/.local/share/blesh"
+  print_success "blesh installed."
+}
+
+update_blesh() {
+  print_info "Updating blesh nightly..."
+  rm -rf "$HOME/.local/share/blesh"
+  install_blesh
+}
+
+# Update SteamOS home-directory tools (no package manager available)
+update_steamos_extras() {
+  print_info "Updating SteamOS home-directory tools..."
+
+  print_info "Updating starship..."
+  curl -sS https://starship.rs/install.sh | sh -s -- --yes --bin-dir "$HOME/.local/bin"
+
+  if [[ -d "$HOME/.fzf" ]]; then
+    print_info "Updating fzf..."
+    git -C "$HOME/.fzf" pull --ff-only
+    "$HOME/.fzf/install" --bin --no-update-rc --no-bash --no-zsh --no-fish
+  fi
+
+  for _p in zsh-autosuggestions zsh-syntax-highlighting; do
+    if [[ -d "$HOME/.zsh/$_p" ]]; then
+      print_info "Updating $_p..."
+      git -C "$HOME/.zsh/$_p" pull --ff-only
+    fi
+  done
+  unset _p
+
+  if command -v bat &>/dev/null; then
+    local _latest
+    _latest=$(curl -s https://api.github.com/repos/sharkdp/bat/releases/latest \
+      | grep '"tag_name"' | cut -d'"' -f4)
+    local _installed
+    _installed="v$(bat --version | awk '{print $2}')"
+    if [[ "$_installed" == "$_latest" ]]; then
+      print_info "bat is already up to date ($_installed)"
+    else
+      print_info "Updating bat $_installed → $_latest..."
+      local _arch; _arch="$(uname -m)-unknown-linux-musl"
+      local _dir="bat-${_latest}-${_arch}"
+      curl -sL "https://github.com/sharkdp/bat/releases/download/${_latest}/${_dir}.tar.gz" \
+        | tar -xz -C "$HOME/.local/bin" --strip-components=1 "${_dir}/bat"
+      chmod +x "$HOME/.local/bin/bat"
+    fi
+  fi
+
+  update_blesh
+}
+
 # Install required packages for the dotfiles plugin stack:
 #   starship  — cross-shell prompt (replaces omz + powerlevel10k)
 #   fzf       — fuzzy finder, Ctrl+R history search
@@ -179,6 +246,7 @@ detect_os() {
 #   zsh-autosuggestions   — fish-like inline suggestions (zsh only)
 #   zsh-syntax-highlighting — command coloring as you type (zsh only)
 #   bash-completion       — tab completion for bash
+#   blesh     — bash readline enhancement (autosuggestions + syntax highlighting)
 install_packages() {
   local os
   os=$(detect_os)
@@ -204,6 +272,7 @@ install_packages() {
         curl -sS https://starship.rs/install.sh | sh -s -- --yes
       fi
       yum install -y fzf bat zsh-autosuggestions zsh-syntax-highlighting bash-completion
+      if [[ "$_update_mode" == true ]]; then update_blesh; else install_blesh; fi
       ;;
 
     alpine)
@@ -214,10 +283,63 @@ install_packages() {
         curl -sS https://starship.rs/install.sh | sh -s -- --yes
       fi
       apk add fzf bat zsh-autosuggestions zsh-syntax-highlighting bash-completion
+      if [[ "$_update_mode" == true ]]; then update_blesh; else install_blesh; fi
       ;;
 
     arch)
       sudo pacman -Syu --noconfirm starship fzf bat zsh-autosuggestions zsh-syntax-highlighting bash-completion
+      if [[ "$_update_mode" == true ]]; then update_blesh; else install_blesh; fi
+      ;;
+
+    steamos)
+      # SteamOS has an immutable root filesystem — pacman installs don't persist
+      # across OS updates. Install everything to the home directory instead.
+      if [[ "$_update_mode" == true ]]; then
+        update_steamos_extras
+      else
+        mkdir -p "$HOME/.local/bin" "$HOME/.zsh"
+
+        if command -v starship &>/dev/null; then
+          print_info "starship already installed, skipping"
+        else
+          print_info "Installing Starship to ~/.local/bin..."
+          curl -sS https://starship.rs/install.sh | sh -s -- --yes --bin-dir "$HOME/.local/bin"
+        fi
+
+        if [[ -d "$HOME/.fzf" ]]; then
+          print_info "fzf already installed at ~/.fzf, skipping"
+        else
+          print_info "Installing fzf to ~/.fzf..."
+          git clone --depth 1 https://github.com/junegunn/fzf.git "$HOME/.fzf"
+          "$HOME/.fzf/install" --bin --no-update-rc --no-bash --no-zsh --no-fish
+        fi
+
+        if command -v bat &>/dev/null; then
+          print_info "bat already installed, skipping"
+        else
+          print_info "Installing bat to ~/.local/bin..."
+          local _bat_ver
+          _bat_ver=$(curl -s https://api.github.com/repos/sharkdp/bat/releases/latest \
+            | grep '"tag_name"' | cut -d'"' -f4)
+          local _bat_arch; _bat_arch="$(uname -m)-unknown-linux-musl"
+          local _bat_dir="bat-${_bat_ver}-${_bat_arch}"
+          curl -sL "https://github.com/sharkdp/bat/releases/download/${_bat_ver}/${_bat_dir}.tar.gz" \
+            | tar -xz -C "$HOME/.local/bin" --strip-components=1 "${_bat_dir}/bat"
+          chmod +x "$HOME/.local/bin/bat"
+        fi
+
+        for _plugin in zsh-autosuggestions zsh-syntax-highlighting; do
+          if [[ ! -d "$HOME/.zsh/$_plugin" ]]; then
+            print_info "Installing $_plugin to ~/.zsh/..."
+            git clone --depth 1 "https://github.com/zsh-users/$_plugin" "$HOME/.zsh/$_plugin"
+          else
+            print_info "$_plugin already installed, skipping"
+          fi
+        done
+        unset _plugin
+
+        install_blesh
+      fi
       ;;
 
     debian|ubuntu)
@@ -229,6 +351,7 @@ install_packages() {
         print_info "Installing Starship via official installer (not in apt repos)..."
         curl -sS https://starship.rs/install.sh | sh -s -- --yes
       fi
+      if [[ "$_update_mode" == true ]]; then update_blesh; else install_blesh; fi
       ;;
 
     *)
@@ -251,6 +374,16 @@ main() {
   echo "========================================"
   echo ""
 
+  # Parse flags
+  _update_mode=false
+  for arg in "$@"; do
+    [[ "$arg" == "--update" ]] && _update_mode=true
+  done
+
+  if [[ "$_update_mode" == true ]]; then
+    print_info "Running in UPDATE mode — refreshing packages only, skipping dotfile linking."
+  fi
+
   # Check if we're in the right directory
   if [[ ! -d "$DOTFILES_DIR/.git" ]]; then
     print_error "This doesn't appear to be a git repository!"
@@ -262,13 +395,15 @@ main() {
   echo ""
   install_packages
 
-  # Link dotfiles
-  echo ""
-  link_dotfiles
+  if [[ "$_update_mode" != true ]]; then
+    # Link dotfiles
+    echo ""
+    link_dotfiles
 
-  # Merge gitconfig aliases
-  echo ""
-  merge_gitconfig_aliases
+    # Merge gitconfig aliases
+    echo ""
+    merge_gitconfig_aliases
+  fi
 
   echo ""
   echo "========================================"
@@ -287,4 +422,4 @@ main() {
 }
 
 # Run main function
-main
+main "$@"

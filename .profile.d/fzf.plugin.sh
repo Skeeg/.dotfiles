@@ -37,10 +37,14 @@ elif [[ -d "/usr/local/opt/fzf/shell" ]]; then
 elif [[ -d "/usr/share/doc/fzf/examples" ]]; then
   # apt-installed (Ubuntu/Debian)
   _fzf_shell_dir="/usr/share/doc/fzf/examples"
+elif [[ -d "$HOME/.fzf/shell" ]]; then
+  # standalone git install (SteamOS / home-dir install)
+  _fzf_shell_dir="$HOME/.fzf/shell"
 fi
 
 if [[ -n "$_fzf_shell_dir" ]]; then
-  if [[ -n "$BASH_VERSION" ]]; then
+  if [[ -n "$BASH_VERSION" ]] && [[ -z "${BLE_VERSION-}" ]]; then
+    # Standard fzf bash integration — skip when blesh is active (it provides its own via .blerc)
     [[ -f "${_fzf_shell_dir}/key-bindings.bash" ]] && source "${_fzf_shell_dir}/key-bindings.bash"
     [[ -f "${_fzf_shell_dir}/completion.bash" ]]   && source "${_fzf_shell_dir}/completion.bash"
   elif [[ -n "$ZSH_VERSION" ]]; then

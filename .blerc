@@ -1,0 +1,8 @@
+# ~/.blerc — blesh (ble.sh) configuration
+# https://github.com/akinomyoga/ble.sh
+
+# fzf integration — replaces the standard fzf bash key-bindings when blesh is active.
+# The -d flag enables delayed (background) initialization so shell startup is not blocked.
+# Note: bash-completion is loaded by completions.plugin.sh before this takes effect.
+ble-import -d integration/fzf-completion
+ble-import -d integration/fzf-key-bindings

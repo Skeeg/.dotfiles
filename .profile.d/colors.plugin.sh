@@ -72,6 +72,8 @@ if [[ -n "$ZSH_VERSION" ]]; then
     _zsh_autosuggest="/opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
   elif [[ -f "/usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ]]; then
     _zsh_autosuggest="/usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+  elif [[ -f "$HOME/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh" ]]; then
+    _zsh_autosuggest="$HOME/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh"
   fi
   [[ -n "$_zsh_autosuggest" ]] && source "$_zsh_autosuggest"
   unset _zsh_autosuggest
@@ -81,6 +83,8 @@ if [[ -n "$ZSH_VERSION" ]]; then
     _zsh_syntax="/opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
   elif [[ -f "/usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]]; then
     _zsh_syntax="/usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+  elif [[ -f "$HOME/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]]; then
+    _zsh_syntax="$HOME/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
   fi
   [[ -n "$_zsh_syntax" ]] && source "$_zsh_syntax"
   unset _zsh_syntax

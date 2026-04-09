@@ -6,6 +6,12 @@
 # PATH — set before the interactive guard so scripts that source .bashrc also benefit
 export PATH="$HOME/.local/bin:$PATH"
 
+# blesh (ble.sh) — bash readline enhancement: inline autosuggestions + syntax highlighting.
+# Must be sourced before other readline customizations; --noattach defers activation
+# until ble-attach at the end of this file. No-op if blesh is not installed.
+[[ $- == *i* ]] && [[ -f "$HOME/.local/share/blesh/ble.sh" ]] \
+  && source "$HOME/.local/share/blesh/ble.sh" --noattach
+
 if [[ $- == *i* ]] && [[ -z "$RSYNC_PROTECT_ARGS" ]]; then
 
   if [[ -d "${HOME}/.profile.d" ]]; then
@@ -24,3 +30,6 @@ if [[ $- == *i* ]] && [[ -z "$RSYNC_PROTECT_ARGS" ]]; then
   fi
 
 fi
+
+# Attach blesh after all other config is loaded (required by blesh; no-op if not installed)
+[[ ${BLE_VERSION-} ]] && ble-attach
