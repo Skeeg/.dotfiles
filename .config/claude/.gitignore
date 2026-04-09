@@ -1,0 +1,5 @@
+# Track only specific files in .config/claude/
+*
+!.gitignore
+!keybindings.json
+!statusline-command.sh
