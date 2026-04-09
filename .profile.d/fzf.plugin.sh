@@ -12,6 +12,10 @@
 # probes known locations in priority order: Homebrew (Apple Silicon, Intel),
 # then system apt paths.
 
+# Add home-dir fzf binary to PATH if present (standalone git install via bootstrap --steamos)
+[[ -d "$HOME/.fzf/bin" ]] && [[ ":$PATH:" != *":$HOME/.fzf/bin:"* ]] \
+  && export PATH="$HOME/.fzf/bin:$PATH"
+
 if ! command -v fzf &>/dev/null; then
   return 0
 fi
