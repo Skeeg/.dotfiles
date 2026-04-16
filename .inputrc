@@ -1,0 +1,4 @@
+# readline configuration
+
+# Option+Backspace — delete previous word
+"\e\177": backward-kill-word
