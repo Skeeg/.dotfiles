@@ -33,3 +33,6 @@ fi
 
 # Attach blesh after all other config is loaded (required by blesh; no-op if not installed)
 [[ ${BLE_VERSION-} ]] && ble-attach
+
+# Re-apply .inputrc after blesh attach — blesh resets readline meta settings on attach
+[[ $- == *i* ]] && [[ ${BLE_VERSION-} ]] && [[ -f ~/.inputrc ]] && bind -f ~/.inputrc
