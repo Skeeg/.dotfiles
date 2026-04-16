@@ -1,4 +1,10 @@
 # readline configuration
 
+# Ensure meta/escape sequences work correctly over SSH
+set meta-flag on
+set input-meta on
+set convert-meta off
+set output-meta on
+
 # Option+Backspace — delete previous word
 "\e\177": backward-kill-word
