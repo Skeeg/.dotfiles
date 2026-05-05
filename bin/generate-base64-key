@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+length="${1:-32}"
+openssl rand "$length" | base64 | tr -d '\n'

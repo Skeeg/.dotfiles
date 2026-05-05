@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+if [[ "$1" == "full" ]]
+then
+  shift
+  command env "$@"
+  exit 0
+fi
+command env | while IFS= read -r line
+do
+  key="${line%%=*}"
+  val="${line#*=}"
+  if [[ "$line" == *=* ]]
+  then
+    printf "%s=%s...\n" "$key" "${val:0:3}"
+  else
+    printf "%s\n" "$line"
+  fi
+done

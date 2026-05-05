@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+# macOS only — uses Homebrew openjdk paths
+if [[ "$(uname)" != "Darwin" ]]; then echo "jenv-setup: macOS only"; exit 1; fi
+jenv add /opt/homebrew/opt/openjdk/
+jenv add /opt/homebrew/opt/openjdk@11
+jenv add /opt/homebrew/opt/openjdk@17
+cat << EOF > $HOME/.jenv/version
+0.18
+EOF

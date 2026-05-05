@@ -28,13 +28,6 @@ safesleep() { sudo pmset -a hibernatemode 3 ; }    # safesleep:    Set safe slee
 smartsleep() { sudo pmset -a hibernatemode 2 ; }   # smartsleep:   Set smart sleep mode 
 cowdate() { LANG=C date | cowsay ; }               # cowdate:      Show date announced by cow
 
-### Tools ###
-rbrew_upgrade() {
-  brew update && brew upgrade
-}
-rbrew_doctor() {
-  brew update && brew upgrade && brew cleanup; brew doctor
-}
 
 ### Functions (network) ###
 myip() { curl icanhazip.com ; }                    # myip:         Public facing IP Address
@@ -48,26 +41,10 @@ ipInfo1() { ipconfig getpacket en1 ; }             # ipInfo1:      Get info on c
 openPorts() { sudo lsof -i | grep LISTEN ; }       # openPorts:    All listening connections
 showBlocked() { sudo ipfw list ; }                 # showBlocked:  All ipfw rules inc/ blocked IPs
 httpHeaders() { /usr/bin/curl -I -L $@ ; }         # httpHeaders:  Grabs headers from web page
-httpDebug() { /usr/bin/curl $@ -o /dev/null -w "dns: %{time_namelookup} connect: %{time_connect} pretransfer: %{time_pretransfer} starttransfer: %{time_starttransfer} total: %{time_total}\n" ; }
-ipLocal() {
-  for i in $(ifconfig -l); do
-    case $i in
-      (lo0) ;;
-      (*)   set -- $(ifconfig $i | grep "inet [1-9]")
-            if test $# -gt 1; then echo $i: $2; fi  ;;
-    esac
-  done
-}
 
 ### Functions (system) ###
 mountReadWrite() { /sbin/mount -uw / ; }
-findPid() { lsof -t -c "$@" ; }
-memHogsTop() { top -l 1 -o rsize | head -20 ; }
-memHogsPs() { ps wwaxm -o pid,stat,vsize,rss,time,command | head -10 ; }
-topForever() { top -l 9999999 -s 10 -o cpu ; }
 ttop() { top -R -F -s 10 -o rsize ; }
-cpu_hogs() { ps wwaxr -o pid,stat,%cpu,time,command | head -10 ; }
-my_ps() { ps $@ -u $USER -o pid,%cpu,%mem,start,time,bsdtime,command ; }
 ii() {
   echo -e "\nYou are logged on ${HOSTNAME}"
   echo -e "\nAdditional information:   " ; uname -a
@@ -83,7 +60,6 @@ finderShowHidden() { defaults write com.apple.finder ShowAllFiles TRUE ; }
 finderHideHidden() { defaults write com.apple.finder ShowAllFiles FALSE ; }
 dush() { du -sm * | sort -n | tail ; }
 numFiles() { echo $(ls -1 | wc -l) ; }             # numFiles:     Count of non-hidden files in current dir
-cleanupDS() { find . -type f -name '*.DS_Store' -ls -delete ; }
 mcd() { mkdir -p "$1" && cd "$1" ; }               # mcd:          Makes new Dir and jumps inside
 ql() { qlmanage -p "$*" >& /dev/null ; }           # ql:           Opens any file in MacOS Quicklook Preview
 zipf() { zip -r "$1".zip "$1" ; }                  # zipf:         To create a ZIP archive of a folder

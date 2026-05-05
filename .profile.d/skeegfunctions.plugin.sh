@@ -6,41 +6,8 @@
 # Date:   Mon Aug 8 21:28:29 MST 2022
 #
 
-rawurlencode() {
-  local string="${1}"
-  local strlen=${#string}
-  local encoded=""
-  local pos c o
 
-  for (( pos=0 ; pos<strlen ; pos++ )); do
-    c=${string:$pos:1}
-    case "$c" in
-      [-_.~a-zA-Z0-9] ) o="${c}" ;;
-      * )               printf -v o '%%%02x' "'$c"
-    esac
-    encoded+="${o}"
-  done
-  echo "${encoded}"    # You can either set a return variable (FASTER)
-  REPLY="${encoded}"   #+or echo the result (EASIER)... or both... :p
-}
 
-jenv-setup() {
-  # macOS only — uses Homebrew openjdk paths
-  if [[ "$(uname)" != "Darwin" ]]; then echo "jenv-setup: macOS only"; return 1; fi
-  jenv add /opt/homebrew/opt/openjdk/
-  jenv add /opt/homebrew/opt/openjdk@11
-  jenv add /opt/homebrew/opt/openjdk@17
-  cat << EOF > $HOME/.jenv/version
-0.18
-EOF
-}
-
-#OS Conveniences
-flushdns() {
-  # macOS only — flushes mDNS responder cache
-  if [[ "$(uname)" != "Darwin" ]]; then echo "flushdns: macOS only (try 'sudo systemd-resolve --flush-caches' on Linux)"; return 1; fi
-  sudo killall -HUP mDNSResponder
-}
 
 gittyup() { 
   #Variable $1 value can be --auto-switch-on-missing to change branches back to the origin default if the branch is found missing
@@ -255,35 +222,9 @@ setenv() {
   export $(grep -v '^#' "$1" | xargs)
 }
 
-refresh-asdf-nodejs-vers () {
-  nodejsvers=$(asdf list all nodejs)
-  for NODEVERSION in $(echo "14 16 18 20 22")
-  do
-    asdf install nodejs $(echo $nodejsvers | grep -e "^$NODEVERSION" | tail -1)
-  done
-}
 
-_truncated_env_output () {
-	if [[ "$1" == "full" ]]
-	then
-		shift
-		command env "$@"
-		return
-	fi
-	command env | while IFS= read -r line
-	do
-		key="${line%%=*}"
-		val="${line#*=}"
-		if [[ "$line" == *=* ]]
-		then
-			printf "%s=%s...\n" "$key" "${val:0:3}"
-		else
-			printf "%s\n" "$line"
-		fi
-	done
-}
-alias env=_truncated_env_output
-alias printenv=_truncated_env_output
+alias env=peek-env
+alias printenv=peek-env
 alias status-vbox="sudo systemctl status vbox-dmz"
 alias restart-vbox="sudo systemctl restart vbox-dmz"
 alias start-vbox="sudo systemctl start vbox-dmz"
@@ -300,23 +241,13 @@ lcd() {
   cd "$1"
 }
 
-generate_base64_key() {
-  length="${1:-32}"
-  openssl rand "$length" | base64 | tr -d '\n'
-}
 
 hash_api_key() {
   local key="$1"
   echo -n "$key" | sha256sum | xxd -r -p | base64
 }
 
-generate_uuid_key() {
-  openssl rand -hex 16 | sed 's/\(.\{8\}\)\(.\{4\}\)\(.\{4\}\)\(.\{4\}\)\(.\{12\}\)/\1-\2-\3-\4-\5/'
-}
 
-get_date_string() {
-  date -u +"%Y-%m-%d" 2>/dev/null || date -u -j +"%Y-%m-%d"
-}
 
 get_1password_field () {
   local entry_name="$1"
