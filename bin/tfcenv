@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+cat .terraform/environment | sed -n \
+  -e "s/^.*-\(\staging\).*$/\1/p" \
+  -e "s/^.*-\(\production\).*$/\1/p"

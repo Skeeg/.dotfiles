@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+terraform workspace select production; kubectx app-production.kube.us-west-2.ldap

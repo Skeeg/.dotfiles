@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+for a in $(terraform plan | grep " be" | awk '{print $3}' | grep -e "aws" -e "vault" | grep -v "cloudwatch");
+do
+  printf "--target=$a "
+done

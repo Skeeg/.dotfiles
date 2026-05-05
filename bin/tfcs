@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+terraform workspace select "${PWD##*/}-staging-us-west-2" && kubestage

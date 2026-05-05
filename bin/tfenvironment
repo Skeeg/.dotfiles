@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+[[ $(cat .terraform/environment) = 'staging' ]] || \
+[[ $(cat .terraform/environment) = 'production' ]] && \
+cat .terraform/environment || \
+tfcenv

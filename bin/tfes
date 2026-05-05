@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+terraform workspace select staging; kubectx app-k8s.eplur-staging.us-west-2.ldap

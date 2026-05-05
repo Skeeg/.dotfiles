@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+terraform workspace select "${PWD##*/}-production-us-west-2" && kubeprod
