@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+if [[ -z "${DVS_BOOTSTRAP_PRODUCTION}" ]]; then
+  eval "$(dvs-bootstrap-production)"
+fi
+kafka-log-dirs --bootstrap-server $DVS_BOOTSTRAP_PRODUCTION --command-config ~/sasl-iam.properties --describe --topic-list $1 | grep '^{' | jq '[ ..|.size? | numbers ] | add' | numfmt --to iec --format "%8.2f" | tr -d '\n' && echo \,$1

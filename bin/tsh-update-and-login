@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+if ! tsh status > /dev/null 2>&1; then
+  update-teleport-client
+  echo "No active session. Logging you in first by running 'tsh --proxy https://pluralsight.teleport.sh --auth okta login'..."
+  tsh --proxy https://pluralsight.teleport.sh --auth okta login
+fi

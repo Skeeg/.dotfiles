@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+image_id="$1"
+format="default"
+
+# Validate required argument
+[[ -z "$image_id" ]] && { echo "usage: docker-display-build-commands IMAGE [format]"; exit 1; }
+
+# Parse arguments
+for arg in "${@:2}"; do
+  case "$arg" in
+    full|--full)
+      format="full"
+      ;;
+    compact|--compact)
+      format="compact"
+      ;;
+  esac
+done
+
+# Build docker history command with array
+docker_cmd=(docker history --no-trunc --format '{{json .}}' "$image_id")
+
+# Apply format
+case "$format" in
+  full)
+    "${docker_cmd[@]}" | jq -sc 'sort_by(.CreatedAt) | .[] | {CreatedAt, CreatedBy, Size}'
+    ;;
+  compact)
+    "${docker_cmd[@]}" | jq -sr 'sort_by(.CreatedAt) | .[] | .CreatedBy'
+    ;;
+  *)
+    "${docker_cmd[@]}" | jq -sc 'sort_by(.CreatedAt) | .[] | {CreatedBy, CreatedAt}'
+    ;;
+esac

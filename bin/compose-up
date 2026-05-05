@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+[ -n "${REPOPATH+x}" ] || { echo "Error: \$REPOPATH is not set" >&2; exit 1; }
+cd "$REPOPATH/$1"
+docker compose up -d --build
+cd -

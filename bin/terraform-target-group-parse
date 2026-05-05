@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+EXEC_MODE="$1"
+tfoutputdata=$(terraform show --json | jq -r '.values.outputs')
+for tgname in $(echo "$tfoutputdata" | jq --raw-output '.tg_attachments.value | keys[]')
+do
+  echo \#$tgname
+  tgdata=$(echo "$tfoutputdata" | jq --raw-output ".tg_attachments.value.$tgname")
+  tgarn=$(echo "$tgdata" | jq --raw-output '.target_group')
+  for tginstance in $(echo "$tgdata" | jq --raw-output '.target_id[]')
+  do
+    instancename=$(echo "$tfoutputdata" | jq --raw-output ".ec2_id_mapping.value.instances.\"$tginstance\"")
+    if [[ $EXEC_MODE = "verbose" ]]; then
+      echo "aws elbv2 deregister-targets --target-group-arn $tgarn --targets Id=$tginstance; #$instancename "
+    else
+      echo "aws elbv2 deregister-targets --target-group-arn $tgarn --targets Id=$tginstance;"
+    fi
+  done
+done

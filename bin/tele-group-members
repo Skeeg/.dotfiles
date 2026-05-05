@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+if [ -z "$1" ]; then
+  echo "Usage: tele-group-members <group-name>"
+  echo "Examples:"
+  echo "  tele-group-members exp_devops"
+  echo "  tele-group-members 'North America'"
+  exit 0
+fi
+
+tctl get users --format=json | jq -r --arg g "$1" \
+  '.[] | select(.spec.traits.groups // [] | map(ascii_downcase) | any(. == ($g | ascii_downcase))) | .metadata.name'

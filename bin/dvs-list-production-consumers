@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+if [[ -z "${DVS_BOOTSTRAP_PRODUCTION}" ]]; then
+  eval "$(dvs-bootstrap-production)"
+fi
+kafka-consumer-groups --bootstrap-server $DVS_BOOTSTRAP_PRODUCTION --command-config ~/sasl-iam.properties --list --timeout 60000 | sort

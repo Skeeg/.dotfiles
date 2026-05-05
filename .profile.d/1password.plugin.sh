@@ -23,9 +23,41 @@ get_1password_field() {
     echo "Error: get_1password_item requires 2 arguments: item_name, field" >&2
     return 1
   fi
-  
+
   local item_name="$1"
   local field="$2" # Field is generally structured as a username or environment variable
 
   op item get --account "$ONE_PASSWORD_ACCOUNT" "$item_name" --fields label="$field" --reveal
+}
+
+hydrate() {
+  # Export env vars stored as fields on the "LocalEnv" 1Password item.
+  # With no arg: export every field. With a section name: export only fields in that section.
+  # Section match is case-insensitive on both sides.
+  local VAULT_NAME=Employee
+  local ITEM=LocalEnv
+  local SECTION
+  SECTION=$(echo -n "$1" | tr '[:upper:]' '[:lower:]')
+
+  declare -a CREDS=()
+
+  if [ -n "$SECTION" ]; then
+    echo "Hydrating environment for: $SECTION"
+    while read -r line; do
+      CREDS+=("$line")
+    done < <(op item get "$ITEM" --account "$ONE_PASSWORD_ACCOUNT" --vault "$VAULT_NAME" --format json \
+      | jq --arg section "$SECTION" -r '.fields[] | select((.section.label // "" | ascii_downcase) == $section) | "\(.label)=\(.value)"')
+  else
+    echo "Hydrating all items"
+    while read -r line; do
+      CREDS+=("$line")
+    done < <(op item get "$ITEM" --account "$ONE_PASSWORD_ACCOUNT" --vault "$VAULT_NAME" --format json \
+      | jq -r '.fields[] | select(.label != "notesPlain") | "\(.label)=\(.value)"')
+  fi
+
+  if [ ${#CREDS[@]} -gt 0 ]; then
+    for item in "${CREDS[@]}"; do
+      export "$item"
+    done
+  fi
 }

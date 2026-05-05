@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+if [[ -z "${DVS_BOOTSTRAP_STAGING}" ]]; then
+  eval "$(dvs-bootstrap-staging)"
+fi
+TOPICCOUNT=$(kafka-run-class kafka.tools.GetOffsetShell --bootstrap-server $DVS_BOOTSTRAP_STAGING --command-config ~/sasl-iam.properties --topic "$1")
+echo $TOPICCOUNT && echo $TOPICCOUNT | awk -F  ":" '{sum += $3} END {print "Result: "sum}'

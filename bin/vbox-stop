@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+vm="${1:?Usage: vbox-stop <vmname>}"
+touch "/opt/vms/${vm}/.intentional-shutdown"
+vboxmanage controlvm "$vm" acpipowerbutton

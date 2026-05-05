@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+export SASLUSER=$(aws secretsmanager get-secret-value --secret-id "$DVS_MSK_SASL_SECRET_ID" --query SecretString --output text| jq -r '.username')
+export SASLPASS=$(aws secretsmanager get-secret-value --secret-id "$DVS_MSK_SASL_SECRET_ID" --query SecretString --output text| jq -r '.password')

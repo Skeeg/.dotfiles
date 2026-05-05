@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+if [[ -z "${DVS_BOOTSTRAP_STAGING}" ]]; then
+  eval "$(dvs-bootstrap-staging)"
+fi
+kafka-log-dirs --bootstrap-server $DVS_BOOTSTRAP_STAGING --command-config ~/sasl-iam.properties --describe --topic-list $1 | grep '^{' | jq '[ ..|.size? | numbers ] | add' | numfmt --to iec --format "%8.2f" | tr -d '\n' && echo \,$1

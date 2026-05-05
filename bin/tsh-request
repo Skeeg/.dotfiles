@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+if [ $# -le 1 ]; then
+  echo "Need an Environment and a JIRA Ticket"
+  echo "Example: tsh-request staging ATM-123"
+  exit 0
+fi
+tsh request create --roles developer-$1-access --reason "'$2'"

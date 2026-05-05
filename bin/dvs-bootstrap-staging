@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+export DVS_BOOTSTRAP_STAGING=$(aws ssm get-parameter --name "$DVS_MSK_SSM_PARAM" --output text --query Parameter.Value)
+export DVS_BOOTSTRAP_STAGING_SASL=$(echo $DVS_BOOTSTRAP_STAGING | sed 's/9098/9096/g')
