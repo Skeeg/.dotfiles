@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+echo -e "\nYou are logged on ${HOSTNAME}"
+echo -e "\nAdditional information:   " ; uname -a
+echo -e "\nUsers logged on:           " ; w -h
+echo -e "\nCurrent date:              " ; date
+echo -e "\nMachine stats:             " ; uptime
+echo -e "\nPublic facing IP Address:  " ; curl icanhazip.com
+echo

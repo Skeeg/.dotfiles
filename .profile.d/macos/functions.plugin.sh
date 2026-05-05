@@ -43,28 +43,20 @@ showBlocked() { sudo ipfw list ; }                 # showBlocked:  All ipfw rule
 httpHeaders() { /usr/bin/curl -I -L $@ ; }         # httpHeaders:  Grabs headers from web page
 
 ### Functions (system) ###
-mountReadWrite() { /sbin/mount -uw / ; }
+# mountReadWrite → bin/mount-read-write
+# ii → bin/ii
 ttop() { top -R -F -s 10 -o rsize ; }
-ii() {
-  echo -e "\nYou are logged on ${HOSTNAME}"
-  echo -e "\nAdditional information:   " ; uname -a
-  echo -e "\nUsers logged on:           " ; w -h
-  echo -e "\nCurrent date:              " ; date
-  echo -e "\nMachine stats:             " ; uptime
-  echo -e "\nPublic facing IP Address:  " ; myip
-  echo
-}
 
 ### Functions (filemanagement) ###
-finderShowHidden() { defaults write com.apple.finder ShowAllFiles TRUE ; }
-finderHideHidden() { defaults write com.apple.finder ShowAllFiles FALSE ; }
+# finderShowHidden → bin/finder-show-hidden
+# finderHideHidden → bin/finder-hide-hidden
+# spotlight → bin/spotlight
 dush() { du -sm * | sort -n | tail ; }
 numFiles() { echo $(ls -1 | wc -l) ; }             # numFiles:     Count of non-hidden files in current dir
 mcd() { mkdir -p "$1" && cd "$1" ; }               # mcd:          Makes new Dir and jumps inside
 ql() { qlmanage -p "$*" >& /dev/null ; }           # ql:           Opens any file in MacOS Quicklook Preview
 zipf() { zip -r "$1".zip "$1" ; }                  # zipf:         To create a ZIP archive of a folder
 trash() { command mv "$@" ~/.Trash ; }             # trash:        Moves a file to the MacOS trash
-spotlight() { mdfind "kMDItemDisplayName == '$@'wc" ; }
 extract() {
   if [ -f $1 ] ; then
     case $1 in

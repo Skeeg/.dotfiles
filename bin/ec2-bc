@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+if [ $# -le 0 ]
+then
+  echo "Enter a Bounded Context name to search for: ec2-bc some-name"
+  exit 0
+fi
+aws ec2 describe-instances \
+  --query 'Reservations[*].Instances[*].[InstanceId,Tags[?Key==`Name`].Value[]]' \
+  --filters "Name=tag-value,Values=$1" --output text | \
+  sed '$!N;s/\n/ /' | \
+  sort -k2

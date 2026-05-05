@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+if ! aws sts get-caller-identity > /dev/null 2>&1
+then
+  echo "No active AWS session, run 'assume' first."
+  exit 0
+fi
+
+if [ $# -le 0 ]
+then
+  echo "Enter an EC2 tag to search for (e.g. 'saltmaster')"
+  exit 0
+fi
+
+instance_id=$(ec2-bc $1 | fzf --height 50% --ansi --no-multi --preview 'aws ec2 describe-instances --instance-ids $(sed "s/^\(i-[0-9a-f]*\).*$/\1/" <<< {}) --output yaml-stream' | awk '{print $1}')
+ssm $instance_id

@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+scope="$1"      # "project" or "group"
+id="$2"         # Project or Group ID
+gitlabPat="$3"  # Personal Access Token
+
+url=""
+if [ "$scope" = "project" ]; then
+  url="https://gitlab.com/api/v4/projects/$id/variables?per_page=100"
+elif [ "$scope" = "group" ]; then
+  url="https://gitlab.com/api/v4/groups/$id/variables?per_page=100"
+else
+  echo "Error: scope must be 'project' or 'group'" >&2
+  exit 1
+fi
+
+result=$(curl --silent --request GET \
+  --header "PRIVATE-TOKEN: $gitlabPat" \
+  "$url" | jq -c '.[] | {key, value, environment_scope}')
+
+if [ $? -ne 0 ]; then
+  echo "Error: Failed to fetch variables for $scope ID $id" >&2
+  exit 1
+fi
+
+echo "$result"
