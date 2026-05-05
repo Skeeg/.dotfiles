@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+_hist_cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}"
+
+if [ -z "$1" ]; then
+  printf 'usage: hist-prune-paths <histfile> [review_file]\n' >&2; exit 1
+fi
+hfile="$1"
+review="${2:-${_hist_cache_dir}/hist_path_review.txt}"
+
+[ ! -f "$hfile"  ] && { printf 'hist-prune-paths: no such file: %s\n' "$hfile" >&2; exit 1; }
+[ ! -f "$review" ] && { printf 'hist-prune-paths: review file not found: %s\n' "$review" >&2; exit 1; }
+[ ! -s "$review" ] && { printf 'hist-prune-paths: review file is empty — nothing to do\n'; exit 0; }
+
+backup="${hfile}.bak.$(date +%Y%m%d_%H%M%S)"
+cp "$hfile" "$backup" || { printf 'hist-prune-paths: backup failed — aborting\n' >&2; exit 1; }
+tmpfile=$(mktemp)
+before=$(LC_ALL=C wc -l < "$hfile")
+
+# Single awk pass: exact-line matching against review file
+LC_ALL=C awk -v dropfile="$review" '
+  BEGIN {
+    while ((getline line < dropfile) > 0) {
+      gsub(/\r/, "", line)
+      if (length(line)) drop[line] = 1
+    }
+    close(dropfile)
+    skip = 0
+  }
+  {
+    if (skip) { skip = ($0 ~ /\\$/) ? 1 : 0; next }
+    if ($0 in drop)  { skip = ($0 ~ /\\$/) ? 1 : 0; next }
+    print
+  }
+' "$hfile" > "$tmpfile"
+
+after=$(LC_ALL=C wc -l < "$tmpfile")
+mv "$tmpfile" "$hfile"
+printf 'Pruned %d line(s) (backup: %s)\n' "$(( before - after ))" "$backup"
+printf 'Reload: fc -R\n'
