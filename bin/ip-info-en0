@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+ipconfig getpacket en0

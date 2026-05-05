@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+mkfile 10m ./10MB.dat

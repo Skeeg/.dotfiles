@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+sudo /usr/sbin/lsof -nP | grep TCP

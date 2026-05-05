@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+top -R -F -s 10 -o rsize
