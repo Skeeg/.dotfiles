@@ -14,4 +14,5 @@
 context_portal*
 
 # VSCode Settings
-.vscode/settings.json
+.vscode/**
+.claude/**

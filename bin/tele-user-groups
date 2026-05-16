@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+if [ -z "$1" ]; then
+  echo "Usage: tele-user-groups [-a] <user-name>"
+  echo "  -a : Show all groups (Default: only shows 'exp_' groups)"
+  exit 0
+fi
+
+if [ "$1" = "-a" ]; then
+  USER_NAME="$2"
+  JQ_FILTER='.spec.traits.groups'
+else
+  USER_NAME="$1"
+  JQ_FILTER='.spec.traits.groups | map(select(test("^exp_"; "i")))'
+fi
+
+tctl get users --format=json | jq -r --arg u "$USER_NAME" \
+  '.[] | select((.metadata.name | ascii_downcase) == ($u | ascii_downcase)) | .metadata.name, "---", ('"$JQ_FILTER"' | sort | .[])'

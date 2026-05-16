@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+server_version=$(get-teleport-version server)
+client_version=$(get-teleport-version client)
+if [ "${server_version}" != "${client_version}" ]; then
+  echo "Server version: ${server_version}"
+  echo "Client version: ${client_version}"
+  echo "Updating teleport client to server version"
+  install-teleport ${server_version}
+else
+  echo "Teleport client is up to date"
+fi

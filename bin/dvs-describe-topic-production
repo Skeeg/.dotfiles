@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+if [[ -z "${DVS_BOOTSTRAP_PRODUCTION}" ]]; then
+  eval "$(dvs-bootstrap-production)"
+fi
+kafka-topics \
+  --bootstrap-server $DVS_BOOTSTRAP_PRODUCTION \
+  --command-config ~/sasl-iam.properties \
+  --describe --topic "$1"

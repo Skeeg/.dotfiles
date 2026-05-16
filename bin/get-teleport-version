@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+component="$1"
+response=""
+version=""
+if [ "$component" = "server" ]; then
+  response=$(curl -s https://pluralsight.teleport.sh/webapi/ping)
+  version=$(echo "$response" | jq -r '.server_version')
+elif [ "$component" = "client" ]; then
+  if command -v tsh > /dev/null 2>&1; then
+    version=$(tsh version --client -f json | jq -r ".version")
+  else
+    version="n/a"
+  fi
+else
+  echo "Error: Invalid component specified. Please specify 'client' or 'server'."
+  exit 1
+fi
+if [ -z "$version" ]; then
+  echo "Error: Failed to retrieve the $component version."
+  exit 1
+fi
+echo "$version"

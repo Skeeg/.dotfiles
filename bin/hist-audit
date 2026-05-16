@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+_hist_cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}"
+
+if [ -z "$1" ]; then
+  printf 'usage: hist-audit <histfile> [review_file] [-w whitelist_file]\n' >&2; exit 1
+fi
+hfile="$1"
+review="${2:-${_hist_cache_dir}/hist_cmd_review.txt}"
+whitelist=""
+
+# optional -w <file> anywhere in args
+i=""
+for i in "$@"; do
+  case "$prev" in -w) whitelist="$i" ;; esac
+  prev="$i"
+done
+
+[ ! -f "$hfile" ] && { printf 'hist-audit: no such file: %s\n' "$hfile" >&2; exit 1; }
+[ -n "$whitelist" ] && [ ! -f "$whitelist" ] && { printf 'hist-audit: whitelist not found: %s\n' "$whitelist" >&2; exit 1; }
+
+tmpwords=$(mktemp)
+
+# Single awk pass — extracts first word of every entry, handles non-UTF8 bytes
+LC_ALL=C awk '
+  function extract(cmd,    w, n) {
+    gsub(/^[[:space:]]+/, "", cmd)   # trim leading whitespace
+    gsub(/\\$/, "", cmd)             # strip trailing backslash (then\, fi\ etc.)
+    # split on whitespace and unquoted shell operators (;|&)
+    n = split(cmd, tmp, /[[:space:];|&]+/)
+    w = (n > 0) ? tmp[1] : cmd
+    # strip trailing punctuation that can stick to a word (semicolons, pipes)
+    gsub(/[;|&]+$/, "", w)
+    # skip very long words (base64, cert data, pasted content)
+    if (length(w) > 60) return
+    # skip words with noise characters never valid in command names
+    if (w ~ /[~+\/]/ || w ~ /^[0-9]+\.[0-9]+\.[0-9]/) return
+    # skip words ending with : (HTTP headers like accept-language:)
+    if (w ~ /:$/) return
+    # skip function-definition artifacts (word ends with parenthesis)
+    if (w ~ /\(\)$/ || w ~ /\($/) return
+    if (length(w)) print w
+  }
+  /^: [0-9]+:[0-9]+;/ { extract(substr($0, index($0, ";") + 1)); next }
+  /^ / { next }
+  length($0) { extract($0) }
+' "$hfile" | LC_ALL=C sort -u > "$tmpwords"
+
+count=0
+printf '' > "$review"
+
+while IFS= read -r word; do
+  [ -z "$word" ] && continue
+  # executable names start with alphanumeric or underscore — skip everything else
+  # (./scripts, /absolute/paths, punctuation, quoted strings all handled here)
+  case "$word" in [a-zA-Z_][a-zA-Z0-9_.-]*|[0-9][a-zA-Z0-9_.-]*) ;; *) continue ;; esac
+  case "$word" in *'='*|*'$'*|*'"'*|*"'"*) continue ;; esac  # VAR=val, vars, quotes
+  case "$word" in *[!0-9]*) ;; *) continue ;; esac            # bare numbers
+  # skip ALL-CAPS words (SQL keywords, env vars, heredoc terminators pasted as commands)
+  # exception: short caps that could be real commands (ok length <= 3)
+  if [ "${#word}" -gt 3 ]; then
+    case "$word" in [A-Z]*) nolow="${word//[A-Z_0-9]/}"; [ -z "$nolow" ] && continue ;; esac
+  fi
+
+  # type finds aliases, functions, builtins, PATH binaries in the current shell
+  if ! type "$word" >/dev/null 2>&1; then
+    # also check whitelist: match word against function names in the file
+    # supports both plain name-per-line lists and reference files (name() { or function name)
+    if [ -n "$whitelist" ]; then
+      if LC_ALL=C awk -v w="$word" '
+        /^[a-zA-Z_][a-zA-Z0-9_.:-]*[[:space:]]*\(\)/ { n=$1; gsub(/[[:space:]]*\(\).*/, "", n); if (n==w) found=1 }
+        /^function[[:space:]]+/ { n=$2; gsub(/[[:space:](].*/,"",n); if (n==w) found=1 }
+        /^[a-zA-Z_][a-zA-Z0-9_.-]*$/ { if ($0==w) found=1 }
+        END { exit (found ? 0 : 1) }
+      ' "$whitelist" 2>/dev/null; then
+        continue
+      fi
+    fi
+    printf '%s\n' "$word" >> "$review"
+    count=$(( count + 1 ))
+  fi
+done < "$tmpwords"
+
+rm -f "$tmpwords"
+printf '%d unrecognized first-word(s) → %s\n' "$count" "$review"
+if [ "$count" -gt 0 ]; then
+  printf 'Edit to remove false-positives, then:\n  hist-prune %s %s\n' "$hfile" "$review"
+fi

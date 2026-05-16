@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+ps wwaxm -o pid,stat,vsize,rss,time,command | head -10

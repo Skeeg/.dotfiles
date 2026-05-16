@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+_dvs_production=$(aws ssm get-parameter --name "$DVS_MSK_SSM_PARAM" --output text --query Parameter.Value)
+_dvs_production_sasl=$(echo "$_dvs_production" | sed 's/9098/9096/g')
+printf 'export DVS_BOOTSTRAP_PRODUCTION=%s\n' "$_dvs_production"
+printf 'export DVS_BOOTSTRAP_PRODUCTION_SASL=%s\n' "$_dvs_production_sasl"

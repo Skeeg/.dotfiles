@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+if [ -z "$1" ]; then
+  echo "Usage: tele-user-search <partial-name>"
+  exit 0
+fi
+
+# Regex substring match (test)
+tctl get users --format=json | jq -r --arg u "$1" \
+  '.[] | select(.metadata.name | test($u; "i")) | .metadata.name'

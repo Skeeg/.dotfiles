@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+if [ $# -le 0 ]
+then
+  echo "Enter an Instance ID: ssm i-0123456789abcedf"
+  exit 0
+fi
+aws ssm start-session --target "$1"

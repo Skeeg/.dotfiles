@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# macOS only — flushes mDNS responder cache
+if [[ "$(uname)" != "Darwin" ]]; then echo "flushdns: macOS only (try 'sudo systemd-resolve --flush-caches' on Linux)"; exit 1; fi
+sudo killall -HUP mDNSResponder

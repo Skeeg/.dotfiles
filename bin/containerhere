@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+[[ -z $1 ]] && { echo "usage: containerhere IMAGE [COMMAND]"; exit 1; }
+command=$2
+if [[ -z $command ]]; then
+  command='/bin/bash'
+fi
+bash -c "docker run --rm -it -v $(pwd):/data -w /data $1 $command"

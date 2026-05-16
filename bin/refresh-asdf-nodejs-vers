@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+nodejsvers=$(asdf list all nodejs)
+for NODEVERSION in $(echo "14 16 18 20 22")
+do
+  asdf install nodejs $(echo $nodejsvers | grep -e "^$NODEVERSION" | tail -1)
+done

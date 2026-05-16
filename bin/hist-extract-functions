@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+if [ -z "$1" ]; then
+  printf 'usage: hist-extract-functions <histfile> [outfile]\n' >&2; exit 1
+fi
+hfile="$1"
+outfile="${2:-$HOME/repo/claude-scratch/command-scratch.reference}"
+
+[ ! -f "$hfile" ] && { printf 'hist-extract-functions: no such file: %s\n' "$hfile" >&2; exit 1; }
+
+count=$(LC_ALL=C awk '
+  BEGIN { in_func = 0; n = 0; count = 0 }
+
+  function flush(    i, line) {
+    if (!in_func || n == 0) return
+    printf "# %s\n", ts
+    for (i = 1; i <= n; i++) {
+      line = lines[i]
+      gsub(/\\$/, "", line)
+      printf "%s\n", line
+    }
+    printf "\n"
+    count++
+    in_func = 0
+    n = 0
+  }
+
+  /^: [0-9]+:[0-9]+;/ {
+    flush()
+    semi  = index($0, ";")
+    ts    = substr($0, 1, semi - 1)
+    cmd   = substr($0, semi + 1)
+
+    if (cmd ~ /^[a-zA-Z_][a-zA-Z0-9_.:-]*[[:space:]]*\(\)/ || \
+        cmd ~ /^function[[:space:]]+[a-zA-Z_]/) {
+      in_func = 1
+      n = 1
+      lines[n] = cmd
+      if ($0 !~ /\\$/) flush()
+    }
+    next
+  }
+
+  /^ / {
+    if (!in_func) next
+    n++
+    lines[n] = substr($0, 2)
+    if ($0 !~ /\\$/) flush()
+    next
+  }
+
+  {
+    if (!in_func) next
+    n++
+    lines[n] = $0
+    if ($0 !~ /\\$/) flush()
+  }
+
+  END { flush(); print count > "/dev/stderr" }
+' "$hfile" >> "$outfile" 2>/tmp/_hef_count && cat /tmp/_hef_count; rm -f /tmp/_hef_count)
+
+printf '%d function definition(s) appended → %s\n' "${count:-0}" "$outfile"

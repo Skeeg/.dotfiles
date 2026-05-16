@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+_hist_cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}"
+
+if [ -z "$1" ]; then
+  printf 'usage: hist-audit-paths <histfile> [review_file]\n' >&2; exit 1
+fi
+hfile="$1"
+review="${2:-${_hist_cache_dir}/hist_path_review.txt}"
+
+[ ! -f "$hfile" ] && { printf 'hist-audit-paths: no such file: %s\n' "$hfile" >&2; exit 1; }
+
+printf '' > "$review"
+count=0 flagged=0 prev_raw=""
+
+# awk emits "path_token<SOH>raw_history_line" for every path-like token found.
+# SOH (\001) is used as separator — won't appear in normal terminal input.
+sep=$(printf '\001')
+
+while IFS="$sep" read -r token raw_line; do
+  # When raw_line changes we've moved to a new history entry
+  if [ "$raw_line" != "$prev_raw" ]; then
+    if [ "$flagged" -eq 1 ] && [ -n "$prev_raw" ]; then
+      printf '%s\n' "$prev_raw" >> "$review"
+      count=$(( count + 1 ))
+    fi
+    prev_raw="$raw_line"
+    flagged=0
+  fi
+  [ "$flagged" -eq 1 ] && continue  # entry already marked
+  [ -e "$token" ] || flagged=1
+done < <(LC_ALL=C awk -v home="$HOME" '
+  BEGIN { sep = sprintf("%c", 1) }
+  function emit(cmd, raw,    n, parts, i, t, e) {
+    n = split(cmd, parts, /[[:space:]]+/)
+    for (i = 1; i <= n; i++) {
+      t = parts[i]
+      gsub(/["'"'"']/, "", t)
+      if (index(t, "=") > 0) sub(/^[^=]+=/, "", t)
+      e = t
+      sub(/^~\//, home "/", e)
+      sub(/^~$/, home, e)
+      sub(/[:?#].*$/, "", e)
+      sub(/\/$/, "", e)
+      # absolute paths only — skip ./ ../ (context-dependent), globs (*?), variable refs ($)
+      if (length(e) > 1 && e ~ /^\// && e !~ /[*?$]/)
+        print e sep raw
+    }
+  }
+  /^: [0-9]+:[0-9]+;/ { emit(substr($0, index($0, ";") + 1), $0); next }
+  /^ / { next }
+  length($0) { emit($0, $0) }
+' "$hfile")
+
+# Flush the last entry
+if [ "$flagged" -eq 1 ] && [ -n "$prev_raw" ]; then
+  printf '%s\n' "$prev_raw" >> "$review"
+  count=$(( count + 1 ))
+fi
+
+printf '%d entries with missing path(s) → %s\n' "$count" "$review"
+if [ "$count" -gt 0 ]; then
+  printf 'Edit to remove false-positives, then:\n  hist-prune-paths %s %s\n' "$hfile" "$review"
+fi

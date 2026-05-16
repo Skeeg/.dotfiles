@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+response=""
+if [ $# -le 1 ]; then
+  echo "Need consumer group and topic name: dvs-change-offset-production example-consumer-group-id example.topic.v0 PARTITION OFFSET"
+  echo "PARTITION should be the integer of the partition you want to change."
+  echo "OFFSET should be the integer of the new offset."
+  exit 0
+fi
+if [[ -z "${DVS_BOOTSTRAP_PRODUCTION}" ]]; then
+  eval "$(dvs-bootstrap-production)"
+fi
+read -p "Changing an offset could be a disaster. Are you REALLY sure? [Y/N] " response
+if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+  kafka-consumer-groups --bootstrap-server $DVS_BOOTSTRAP_PRODUCTION --command-config ~/sasl-iam.properties --timeout 6000 --group "$1" --topic "$2":"$3" --reset-offsets --to-offset "$4" --execute
+else
+  echo " ¯\_(ツ)_/¯"
+  cowsay -f deadpool-bob-ross.cow DISCRETION IS THE BETTER PART OF VALOR
+fi

@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+ps wwaxr -o pid,stat,%cpu,time,command | head -10

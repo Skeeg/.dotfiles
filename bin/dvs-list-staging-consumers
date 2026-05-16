@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+if [[ -z "${DVS_BOOTSTRAP_STAGING}" ]]; then
+  eval "$(dvs-bootstrap-staging)"
+fi
+kafka-consumer-groups --bootstrap-server $DVS_BOOTSTRAP_STAGING --command-config ~/sasl-iam.properties --list --timeout 60000 | sort

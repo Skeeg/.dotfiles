@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+_hist_cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}"
+
+if [ -z "$1" ]; then
+  printf 'usage: hist-prune <histfile> [review_file]\n' >&2; exit 1
+fi
+hfile="$1"
+review="${2:-${_hist_cache_dir}/hist_cmd_review.txt}"
+
+[ ! -f "$hfile"  ] && { printf 'hist-prune: no such file: %s\n' "$hfile" >&2; exit 1; }
+[ ! -f "$review" ] && { printf 'hist-prune: review file not found: %s\n' "$review" >&2; exit 1; }
+[ ! -s "$review" ] && { printf 'hist-prune: review file is empty — nothing to do\n'; exit 0; }
+
+backup="${hfile}.bak.$(date +%Y%m%d_%H%M%S)"
+cp "$hfile" "$backup" || { printf 'hist-prune: backup failed — aborting\n' >&2; exit 1; }
+tmpfile=$(mktemp)
+before=$(LC_ALL=C wc -l < "$hfile")
+
+# Single awk pass: load drop-words, stream-filter history
+LC_ALL=C awk -v dropfile="$review" '
+  BEGIN {
+    while ((getline w < dropfile) > 0) {
+      gsub(/\r/, "", w)
+      if (length(w)) drop[w] = 1
+    }
+    close(dropfile)
+    skip = 0
+  }
+  function first_word(s,    n) {
+    n = index(s, " ")
+    return (n > 0) ? substr(s, 1, n-1) : s
+  }
+  {
+    if (skip) { skip = ($0 ~ /\\$/) ? 1 : 0; next }
+    w = ""
+    if ($0 ~ /^: [0-9]+:[0-9]+;/)
+      w = first_word(substr($0, index($0, ";") + 1))
+    else if ($0 !~ /^ /)
+      w = first_word($0)
+    if (length(w) && (w in drop)) {
+      skip = ($0 ~ /\\$/) ? 1 : 0; next
+    }
+    print
+  }
+' "$hfile" > "$tmpfile"
+
+after=$(LC_ALL=C wc -l < "$tmpfile")
+mv "$tmpfile" "$hfile"
+printf 'Pruned %d line(s) (backup: %s)\n' "$(( before - after ))" "$backup"
+printf 'Reload: fc -R\n'

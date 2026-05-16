@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+if [ ! -e "./.terraform/environment" ]
+  then
+  if which cowsay &> /dev/null;
+  then
+    cowsay "you have to be in a terraform directory that is correctly initialized"
+  else
+    echo "you have to be in a terraform directory that is correctly initialized"
+  fi
+  exit 0
+fi
+
+unset ENVIRON
+ENVIRON=$(tfenvironment)
+
+TERRAFORM_DATA=$(terraform show --json | \
+    jq -r '.values.outputs.automation_target_groups.value.target_group_arns[]')
+
+for TARGET_GROUP in $(echo "$TERRAFORM_DATA" | tr '\n' ' ')
+do
+  echo "$TARGET_GROUP"
+  TARGET_HEALTH=$(AWS_PROFILE="$ENVIRON" aws elbv2 describe-target-health --target-group-arn "$TARGET_GROUP")
+  echo "$TARGET_HEALTH" | jq -c '.TargetHealthDescriptions[]'
+done

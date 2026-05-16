@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+mkfile 1m ./1MB.dat

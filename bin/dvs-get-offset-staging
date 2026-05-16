@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+if [ $# -le 0 ]; then
+  echo "Need topic, partiiton, and offset: dvs-get-offset-staging skills.criterionRef.v1.Session 6 4538754"
+  exit 0
+fi
+if [[ -z "${DVS_BOOTSTRAP_STAGING_SASL}" ]]; then
+  eval "$(dvs-bootstrap-staging)"
+fi
+if [[ -z "${SASLPASS}" ]]; then
+  eval "$(dvs-get-sasl)"
+fi
+kcat -b $DVS_BOOTSTRAP_STAGING_SASL \
+  -X security.protocol=SASL_SSL -X sasl.mechanism=SCRAM-SHA-512 -X sasl.username=$SASLUSER -X sasl.password=$SASLPASS \
+  -r $DVS_SCHEMA_REGISTRY_STAGING -s key=avro -s value=avro \
+  -f 'Partition: %p \nOffset: %o \nKey: %k \nValue: %s \n' -t "$1" -p "$2" -o "$3" -c 1

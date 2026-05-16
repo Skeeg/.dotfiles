@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+curl -s -S -X POST "$2/jobs/$1/stop"
+sleep 15
+curl -s -S -X POST "$2/jobs/$1/start"
