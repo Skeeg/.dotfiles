@@ -14,11 +14,6 @@ gittyup() {
   source $SCRIPTS/shell/pull_git_repos.sh --repo-path "$REPOPATH" $1
 }
 
-gittyupsalt() { 
-  source $SCRIPTS/shell/pull_git_repos.sh --repo-path $HOME/full_salt/repo_saltstack_pillars;
-  source $SCRIPTS/shell/pull_git_repos.sh --repo-path $HOME/full_salt/repo_saltstack_states;
-}
-
 secret () {
   # macOS only — uses macOS keychain via the 'security' command
   if [[ "$(uname)" != "Darwin" ]]; then echo "secret: macOS keychain only. Use a password manager or env file on Linux."; return 1; fi
