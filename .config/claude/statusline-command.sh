@@ -67,12 +67,14 @@ fi
 if [[ -n "$remaining" ]]; then
   used_int=${used_pct%.*}
   used_int=${used_int:-0}
-  if [[ "$used_int" -ge 80 ]]; then
-    printf "${red}ctx:%.0f%%${reset} " "$remaining"
-  elif [[ "$used_int" -ge 60 ]]; then
-    printf "${yellow}ctx:%.0f%%${reset} " "$remaining"
+  # Conservative offset: subtract 10pp from displayed value, floor at 0
+  display=$(echo "$remaining" | awk '{r=$1-10; print (r<0)?0:r}')
+  if [[ "$used_int" -ge 70 ]]; then
+    printf "${red}ctx:%.0f%%${reset} " "$display"
+  elif [[ "$used_int" -ge 50 ]]; then
+    printf "${yellow}ctx:%.0f%%${reset} " "$display"
   else
-    printf "ctx:%.0f%% " "$remaining"
+    printf "ctx:%.0f%% " "$display"
   fi
 fi
 
