@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2154
+
+_git_default_branch() {
+  git remote show "$(git remote)" | grep "HEAD branch" | sed 's/.*: //'
+}
+
+_git_switch_default() {
+  git switch "$(_git_default_branch)"
+}
+
+_set_mode() {
+  if [ "$_MODE" != "default" ]; then
+    echo "gittyup: only one of --auto-switch-on-missing, --switch-pull, --stash-switch-pull, --stash-switch-pull-pop may be specified." >&2
+    exit 1
+  fi
+  _MODE="$1"
+}
+
+unset _REPO_PATH _FAIL_PULL
+_MODE="default"
+
+if [ -n "${REPOPATH+x}" ]; then _REPO_PATH="$REPOPATH"; fi
+
+while [[ $# -gt 0 ]]; do
+  key="$1"
+  case $key in
+    --repo-path)
+      _REPO_PATH="$2"
+      shift 2
+      ;;
+    --auto-switch-on-missing)
+      _set_mode "auto-switch"
+      shift
+      ;;
+    --switch-pull)
+      _set_mode "switch-pull"
+      shift
+      ;;
+    --stash-switch-pull)
+      _set_mode "stash-switch-pull"
+      shift
+      ;;
+    --stash-switch-pull-pop)
+      _set_mode "stash-switch-pull-pop"
+      shift
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+
+if [ -z "$_REPO_PATH" ]; then
+  echo "gittyup: REPOPATH is not set. Configure it or pass --repo-path." >&2
+  exit 1
+fi
+
+for folder in "$_REPO_PATH"/*/; do
+  printf "Syncing %s : " "$folder"
+  case "$_MODE" in
+    switch-pull)
+      (cd "$folder" && _git_switch_default && git pull)
+      ;;
+    stash-switch-pull)
+      (cd "$folder" && git stash && _git_switch_default && git pull)
+      ;;
+    stash-switch-pull-pop)
+      (cd "$folder" && git stash && _git_switch_default && git pull && git stash pop)
+      ;;
+    auto-switch)
+      git -C "$folder" pull
+      _FAIL_PULL=$?
+      [[ $_FAIL_PULL == 1 ]] && {
+        [[ $(git -C "$folder" pull 2> >(grep -c -e 'no such ref was fetched')) == 1 ]] && {
+          (cd "$folder" && _git_switch_default && git pull)
+        }
+      }
+      ;;
+    *)
+      git -C "$folder" pull
+      ;;
+  esac
+done
+
+unset _REPO_PATH _MODE _FAIL_PULL
