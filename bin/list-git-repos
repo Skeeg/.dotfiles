@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# List the 'origin' remote URL for every git repo one level under REPOPATH
+# (or --repo-path), one URL per line. Pairs with `gclone`: run this on the
+# machine with the fuller repo set, then on another machine:
+#   list-git-repos > repos.txt   # (copy repos.txt over)
+#   xargs -n1 gclone < repos.txt
+
+set -euo pipefail
+
+usage() {
+  echo "Usage: $(basename "$0") [--repo-path PATH]" >&2
+  exit 1
+}
+
+_REPO_PATH="${REPOPATH:-}"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --repo-path)
+      _REPO_PATH="$2"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      ;;
+    *)
+      usage
+      ;;
+  esac
+done
+
+if [ -z "$_REPO_PATH" ]; then
+  echo "list-git-repos: REPOPATH is not set. Configure it or pass --repo-path." >&2
+  exit 1
+fi
+
+if [ ! -d "$_REPO_PATH" ]; then
+  echo "list-git-repos: directory not found: $_REPO_PATH" >&2
+  exit 1
+fi
+
+for folder in "$_REPO_PATH"/*/; do
+  [ -d "$folder/.git" ] || continue
+  if url=$(git -C "$folder" remote get-url origin 2>/dev/null); then
+    echo "$url"
+  else
+    echo "list-git-repos: skipping $(basename "${folder%/}") — no 'origin' remote" >&2
+  fi
+done

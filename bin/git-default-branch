@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+remote=""
+if git remote | grep -qx origin; then
+  remote="origin"
+else
+  remote="$(git remote)"
+  if [ "$(printf '%s\n' "$remote" | wc -l)" -ne 1 ]; then
+    echo "git-default-branch: cannot determine default branch — no 'origin' remote and repo has $(git remote | wc -l) remotes" >&2
+    exit 1
+  fi
+fi
+git remote show "$remote" | grep "HEAD branch" | sed 's/.*: //'
