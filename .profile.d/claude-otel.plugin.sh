@@ -19,7 +19,9 @@ if [[ -r "$_claude_otel_file" ]]; then
   OTEL_EXPORTER_OTLP_ENDPOINT="$(head -n1 "$_claude_otel_file")"
   export OTEL_EXPORTER_OTLP_ENDPOINT
   export OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative
-  export OTEL_METRICS_INCLUDE_SESSION_ID=false           # series-churn guard (free tier)
+  # OTEL_METRICS_INCLUDE_SESSION_ID stays at its default (true). Setting it false
+  # also strips session.id from log events, and concurrent sessions on one host
+  # then emit identical series whose cumulative counters corrupt each other.
   export OTEL_METRICS_INCLUDE_ACCOUNT_UUID=false
   export OTEL_LOG_USER_PROMPTS=1                         # filtered by loki.secretfilter
   export OTEL_LOG_TOOL_DETAILS=1
