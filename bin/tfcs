@@ -1,2 +1,4 @@
 #!/usr/bin/env bash
-terraform workspace select "${PWD##*/}-staging-us-west-2" && kubestage
+_dir="${PWD##*/}"
+[[ "$_dir" == "terraform" || "$_dir" == "infrastructure" ]] && _dir="$(basename "$(dirname "$PWD")")"
+terraform workspace select "${_dir}-staging-us-west-2" 2>/dev/null && kubestage
