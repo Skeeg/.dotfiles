@@ -5,3 +5,5 @@
 !git/
 !starship.toml
 !claude/
+!mise/
+!mise/config.toml

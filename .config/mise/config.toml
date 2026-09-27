@@ -1,0 +1,20 @@
+# Global mise config — ~/.config/mise/config.toml (via the ~/.config symlink)
+# Adapted from danethurber/.dotfiles mise/config.toml.
+#
+# Division of labor:
+#   mise -> Node, Go, Python interpreters (this file; reads .nvmrc / .python-version)
+#   uv   -> Python project venvs (.venv)
+
+[tools]
+node = "lts"
+go = "latest"
+python = "3.13"
+uv = "latest"
+
+[settings]
+# Honor idiomatic version files (.nvmrc, .python-version) for these tools.
+idiomatic_version_file_enable_tools = ["node", "python"]
+
+[settings.python]
+# Auto-source uv-created .venv directories on cd (no manual `activate`).
+uv_venv_auto = "source"

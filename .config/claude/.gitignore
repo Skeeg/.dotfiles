@@ -7,3 +7,11 @@
 !hooks/cmdhistory-pre.sh
 !hooks/cmdhistory-post.sh
 !hooks/README.md
+!CLAUDE.md
+!output-styles/
+!output-styles/*.md
+!skills/
+!skills/*/
+!skills/*/SKILL.md
+!templates/
+!templates/*.md

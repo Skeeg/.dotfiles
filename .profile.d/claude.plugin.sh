@@ -91,6 +91,40 @@ _claude_bootstrap_cmdhistory_hooks() {
   _claude_merge_bash_hook "$settings" "PostToolUse" "$post_script"
 }
 
+# Symlink one tracked path into ~/.claude. File- or leaf-level only — never
+# ~/.claude itself (see CLAUDE.md § Directory Clobbering Risk). An existing
+# non-symlink target is moved to ~/.claude/backups/ once, then replaced.
+_claude_link() {
+  local src="$1" dest="$2"
+
+  [[ -e "$src" ]] || return 0
+  [[ "$(readlink "$dest" 2>/dev/null)" == "$src" ]] && return 0
+
+  if [[ -e "$dest" && ! -L "$dest" ]]; then
+    mkdir -p "$HOME/.claude/backups" || return 0
+    mv "$dest" "$HOME/.claude/backups/$(basename "$dest").$(date +%Y%m%d%H%M%S)" || return 0
+  fi
+  ln -sfn "$src" "$dest"
+}
+
+_claude_bootstrap_links() {
+  local src="$HOME/.config/claude" skill
+
+  [[ -d "$HOME/.claude" ]] || return 0
+
+  _claude_link "$src/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
+  _claude_link "$src/output-styles" "$HOME/.claude/output-styles"
+
+  mkdir -p "$HOME/.claude/skills"
+  for skill in "$src"/skills/*/; do
+    [[ -d "$skill" ]] || continue
+    skill="${skill%/}"
+    _claude_link "$skill" "$HOME/.claude/skills/$(basename "$skill")"
+  done
+}
+
 _claude_bootstrap_statusline
 _claude_bootstrap_cmdhistory_hooks
-unset -f _claude_bootstrap_statusline _claude_bootstrap_cmdhistory_hooks _claude_merge_bash_hook
+_claude_bootstrap_links
+unset -f _claude_bootstrap_statusline _claude_bootstrap_cmdhistory_hooks _claude_merge_bash_hook \
+  _claude_link _claude_bootstrap_links
