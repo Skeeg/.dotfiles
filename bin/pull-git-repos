@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Pull all git repos one level under a given directory.
+
+set -euo pipefail
+
+usage() {
+  echo "Usage: $(basename "$0") <repo-parent-dir> [--auto-switch]" >&2
+  exit 1
+}
+
+git_default_branch() {
+  git -C "$1" remote show "$(git -C "$1" remote | head -1)" 2>/dev/null \
+    | awk '/HEAD branch/ { print $NF }'
+}
+
+[[ $# -lt 1 ]] && usage
+
+REPO_PATH="$1"
+AUTO_SWITCH="${2:-}"
+
+[[ -d "$REPO_PATH" ]] || { echo "Directory not found: $REPO_PATH" >&2; exit 1; }
+
+ok=0 failed=0
+
+for folder in "$REPO_PATH"/*/; do
+  [[ -d "$folder/.git" ]] || continue
+
+  folder="${folder%/}"  # strip trailing slash — safe.directory matching requires exact path
+  printf "%-60s " "$folder"
+
+  git config --global --add safe.directory "$folder" 2>/dev/null || true
+
+  if git -C "$folder" pull --ff-only 2>&1; then
+    ((ok++))
+  elif [[ "$AUTO_SWITCH" == "--auto-switch" ]]; then
+    branch=$(git_default_branch "$folder")
+    if [[ -n "$branch" ]]; then
+      printf "  → switching to %s and retrying\n" "$branch"
+      git -C "$folder" switch "$branch" && git -C "$folder" pull --ff-only
+      ((ok++))
+    else
+      printf "  ✗ could not determine default branch\n"
+      ((failed++))
+    fi
+  else
+    ((failed++))
+  fi
+done
+
+printf "\nDone: %d ok, %d failed\n" "$ok" "$failed"

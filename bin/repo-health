@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# Flag repos under REPOPATH with an un-popped stash, an in-progress merge, or
+# unmerged paths - the state a failed `gittyup --stash-switch-pull-pop`
+# leaves behind when `git stash pop` hits a conflict.
+#
+# Usage: repo-health [--repo-path PATH]
+
+set -euo pipefail
+
+usage() {
+  echo "Usage: $(basename "$0") [--repo-path PATH]" >&2
+  exit 1
+}
+
+_REPO_PATH="${REPOPATH:-}"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --repo-path)
+      _REPO_PATH="$2"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      ;;
+    *)
+      usage
+      ;;
+  esac
+done
+
+if [ -z "$_REPO_PATH" ]; then
+  echo "repo-health: REPOPATH is not set. Configure it or pass --repo-path." >&2
+  exit 1
+fi
+
+if [ ! -d "$_REPO_PATH" ]; then
+  echo "repo-health: directory not found: $_REPO_PATH" >&2
+  exit 1
+fi
+
+flagged=0
+
+for folder in "$_REPO_PATH"/*/; do
+  [ -d "$folder/.git" ] || continue
+
+  name=$(basename "${folder%/}")
+  stash_count=$(git -C "$folder" stash list | wc -l | tr -d ' ')
+  mid_merge=0
+  [ -f "$folder/.git/MERGE_HEAD" ] && mid_merge=1
+  unmerged=$(git -C "$folder" status --porcelain | grep -cE '^(UU|AA|DD|AU|UA|UD|DU) ' || true)
+
+  if [ "$stash_count" != "0" ] || [ "$mid_merge" = "1" ] || [ "$unmerged" != "0" ]; then
+    flagged=$((flagged + 1))
+    printf '%s | stashes=%s | mid-merge=%s | unmerged_paths=%s\n' "$name" "$stash_count" "$mid_merge" "$unmerged"
+  fi
+done
+
+[ "$flagged" -eq 0 ] && echo "repo-health: no issues found."
+exit 0

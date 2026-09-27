@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# Run any command with its stdout/stderr tagged by origin stream and
+# timestamped per line. No per-line forking: `read`/`printf` are bash
+# builtins and $EPOCHREALTIME is a builtin variable (bash 5+).
+#
+# Usage:
+#   tslog some-command --its --own --flags
+#   TSLOG_FILE=/path/to/log tslog gittyup --stash-switch-pull-pop
+#
+# TSLOG_FILE, if set, additionally appends the tagged output to that file
+# (still shown live on the terminal). Unset means terminal only.
+#
+# Known limitation: when stdout and stderr are both producing output at the
+# same moment, the relative order the two independent branches below land in
+# isn't strictly guaranteed — interleaving between the two branches can
+# shuffle by a line or two under heavy concurrent output.
+#
+# Both branches are tagged in their own subshell but funneled through a
+# single merge FIFO rather than each writing straight to its inherited
+# stdout. Previously, using two `>()` process substitutions on the same
+# command let bash cross-wire their descriptors: `lsof` on the two _tag
+# subshells showed both landing on the *same* underlying pipe object, so
+# the out-tag's `read` could pick up a line that was actually the err-tag's
+# own already-formatted printf output (confirmed, not a write-ordering
+# race — the corrupted line was a whole, well-formed [err] line embedded
+# intact as the content of an [out] line). Routing each branch through an
+# explicit `> "$_merge"` redirect into one FIFO, with a single reader
+# process draining it, removes the ambiguous fd inheritance that caused
+# that.
+
+set -uo pipefail
+
+usage() {
+  echo "Usage: $(basename "$0") <command> [args...]" >&2
+  exit 1
+}
+
+[[ $# -lt 1 ]] && usage
+
+_tag() {
+  local stream="$1" line
+  while IFS= read -r line; do
+    printf '%s [%s] %s\n' "$EPOCHREALTIME" "$stream" "$line"
+  done
+}
+
+_merge="$(mktemp -u "${TMPDIR:-/tmp}/tslog.XXXXXX")"
+mkfifo "$_merge"
+trap 'rm -f "$_merge"' EXIT
+
+if [[ -n "${TSLOG_FILE:-}" ]]; then
+  tee -a "$TSLOG_FILE" < "$_merge" &
+else
+  cat "$_merge" &
+fi
+_reader=$!
+
+"$@" \
+  > >(_tag out > "$_merge") \
+  2> >(_tag err > "$_merge")
+
+status=$?
+wait "$_reader" 2>/dev/null
+exit "$status"

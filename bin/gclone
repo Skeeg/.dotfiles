@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+project_name=$(echo "$1" | rev | cut -d"/" -f1 | rev | sed 's/.git$//g' | tr '[:upper:]' '[:lower:]')
+if [[ ! -n $REPOPATH ]]; then
+	echo "Configure a REPOPATH variable please before running. K THX BYE!"
+	exit 1
+fi
+git clone "$1" "$REPOPATH"/"$project_name"
