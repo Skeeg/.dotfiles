@@ -16,7 +16,22 @@ _git_default_branch() {
 }
 
 _git_switch_default() {
-  git switch "$(_git_default_branch)"
+  local default_branch
+  default_branch="$(_git_default_branch)" || return 1
+  [ "$(git branch --show-current)" = "$default_branch" ] && return 0
+  git switch "$default_branch"
+}
+
+_git_is_repo() {
+  git -C "$1" rev-parse --is-inside-work-tree >/dev/null 2>&1
+}
+
+_git_stash_if_needed() {
+  if [ -n "$(git status --porcelain)" ]; then
+    git stash
+    return 0
+  fi
+  return 1
 }
 
 _set_mode() {
@@ -67,16 +82,32 @@ if [ -z "$_REPO_PATH" ]; then
 fi
 
 for folder in "$_REPO_PATH"/*/; do
-  printf "Syncing %s : " "$folder"
+  printf "Syncing %s\n" "$folder"
+
+  if ! _git_is_repo "$folder"; then
+    echo "gittyup: $folder is not a git repository, skipping"
+    continue
+  fi
+
   case "$_MODE" in
     switch-pull)
       (cd "$folder" && _git_switch_default && git pull)
       ;;
     stash-switch-pull)
-      (cd "$folder" && git stash && _git_switch_default && git pull)
+      (
+        cd "$folder" || exit 1
+        _git_stash_if_needed
+        _git_switch_default && git pull
+      )
       ;;
     stash-switch-pull-pop)
-      (cd "$folder" && git stash && _git_switch_default && git pull && git stash pop)
+      (
+        cd "$folder" || exit 1
+        _stashed=0
+        _git_stash_if_needed && _stashed=1
+        _git_switch_default && git pull
+        [ "$_stashed" -eq 1 ] && git stash pop
+      )
       ;;
     auto-switch)
       git -C "$folder" pull
