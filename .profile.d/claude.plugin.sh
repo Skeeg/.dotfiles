@@ -6,6 +6,11 @@
 # - the cmdhistory PreToolUse/PostToolUse Bash hooks pointing at the tracked
 #   scripts in ~/.config/claude/hooks/ (see that directory's README.md for
 #   what they do and why)
+# - attribution disabled (enforced) and outputStyle defaulted to Unslop (only
+#   if unset, so a /config choice sticks)
+#
+# Also symlinks the tracked global CLAUDE.md, output styles, and skills from
+# ~/.config/claude/ into ~/.claude/ (file/leaf level only).
 #
 # Runs at shell startup; idempotent and silent on success.
 # Skips silently if: Claude Code not installed, jq not available,
@@ -91,6 +96,29 @@ _claude_bootstrap_cmdhistory_hooks() {
   _claude_merge_bash_hook "$settings" "PostToolUse" "$post_script"
 }
 
+# Attribution off is a rule (Ryan owns the work), so it is re-enforced every
+# shell start; outputStyle is only a default.
+_claude_bootstrap_preferences() {
+  local settings="$HOME/.claude/settings.json" tmp
+
+  [[ -f "$settings" ]]      || return 0
+  command -v jq &>/dev/null || return 0
+
+  # Already in the desired state — nothing to do
+  if jq -e '.attribution == {"commit": "", "pr": "", "sessionUrl": false} and has("outputStyle")' \
+      "$settings" &>/dev/null; then
+    return 0
+  fi
+
+  tmp=$(mktemp "${settings}.XXXXXX") || return 0
+  if jq '.attribution = {"commit": "", "pr": "", "sessionUrl": false} | .outputStyle //= "Unslop"' \
+      "$settings" > "$tmp" 2>/dev/null; then
+    mv "$tmp" "$settings"
+  else
+    rm -f "$tmp"
+  fi
+}
+
 # Symlink one tracked path into ~/.claude. File- or leaf-level only — never
 # ~/.claude itself (see CLAUDE.md § Directory Clobbering Risk). An existing
 # non-symlink target is moved to ~/.claude/backups/ once, then replaced.
@@ -125,6 +153,7 @@ _claude_bootstrap_links() {
 
 _claude_bootstrap_statusline
 _claude_bootstrap_cmdhistory_hooks
+_claude_bootstrap_preferences
 _claude_bootstrap_links
 unset -f _claude_bootstrap_statusline _claude_bootstrap_cmdhistory_hooks _claude_merge_bash_hook \
-  _claude_link _claude_bootstrap_links
+  _claude_bootstrap_preferences _claude_link _claude_bootstrap_links
