@@ -24,3 +24,4 @@ command -v colorls &>/dev/null && alias lca='colorls -al'
 # ls and ll aliases are defined in colors.plugin.zsh with platform-aware
 # color flags (--color=auto on Linux, -G on macOS). Not duplicated here.
 alias sshk='ssh -o "StrictHostKeyChecking no" -o UserKnownHostsFile=/dev/null'
+alias gsu='git-switch-default && git pull'

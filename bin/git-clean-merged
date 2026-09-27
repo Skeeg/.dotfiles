@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+_default="$(git remote show "$(git remote)" | grep "HEAD branch" | sed 's/.*: //')"
+# Deletes all branches that have been merged into the default branch
+git checkout "$_default"
+git fetch --prune
+git branch --merged | grep -v '^\*' | grep -v "$_default" | xargs -n 1 git branch -d

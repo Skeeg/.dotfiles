@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+KEY="$1"
+TFC_ORGANIZATION="$2"
+TFC_WORKSPACE="$3"
+TFC_API_TOKEN="$4"
+ARG_LENGTH="$#"
+
+if [ "$ARG_LENGTH" -eq "4" ]; then
+  curl --silent \
+    --header "Authorization: Bearer $TFC_API_TOKEN" \
+    --header "Content-Type: application/vnd.api+json" \
+    "https://app.terraform.io/api/v2/vars" | \
+    tr '\n' ' ' | \
+    jq -c ".data[] |
+      select (.attributes.key == \"$KEY\") |
+      select (.relationships.workspace.links.related ==
+      \"/api/v2/organizations/$TFC_ORGANIZATION/workspaces/$TFC_WORKSPACE\")" | \
+    jq
+else
+  echo "Usage: get-tfc-variable-data [key] [organization] [workspace-name] [TFC-API-Token]" >&2
+  echo "example: get-tfc-variable-data vault-token tfc-organization bounded-context-staging \$(secret get TFC_API_TOKEN)" >&2
+  exit 1
+fi

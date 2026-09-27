@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+echo -n "$1" | sha256sum | xxd -r -p | base64

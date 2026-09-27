@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Must still set $TFC_API_TOKEN and $TFC_ORGANIZATION before running.
+[ -n "${TFC_API_TOKEN+x}" ] || { echo "clear-tfc-cli-args: TFC_API_TOKEN is not set" >&2; exit 1; }
+[ -n "${TFC_ORGANIZATION+x}" ] || { echo "clear-tfc-cli-args: TFC_ORGANIZATION is not set" >&2; exit 1; }
+
+VARIABLE="TF_CLI_ARGS"
+TFC_WORKSPACE=$(cat .terraform/environment)
+VARIABLEID=$(get-tfc-variable-id "$VARIABLE" "$TFC_ORGANIZATION" "$TFC_WORKSPACE" "$TFC_API_TOKEN")
+JSON_DATA='{
+  "data": {
+    "id": "'"$VARIABLEID"'",
+    "attributes": {
+      "key": "'"$VARIABLE"'",
+      "value": "",
+      "description": "",
+      "category": "env",
+      "hcl": false,
+      "sensitive": false
+    },
+    "type": "vars"
+  }
+}'
+curl --header "Authorization: Bearer $TFC_API_TOKEN" \
+  --header "Content-Type: application/vnd.api+json" \
+  --request PATCH --data "$JSON_DATA" \
+  "https://app.terraform.io/api/v2/vars/$VARIABLEID" | jq

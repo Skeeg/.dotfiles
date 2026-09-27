@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Must still set $VAULT_TOKEN before running this until can find out how to select the right instance and token.
+# Method exists in vault.plugin.zsh for setting token
+# example: VAULT_TOKEN=$(vault-staging)
+[ -n "${TFC_API_TOKEN+x}" ] || { echo "patch-tfc-vault-token: TFC_API_TOKEN is not set" >&2; exit 1; }
+[ -n "${TFC_ORGANIZATION+x}" ] || { echo "patch-tfc-vault-token: TFC_ORGANIZATION is not set" >&2; exit 1; }
+[ -n "${VAULT_TOKEN+x}" ] || { echo "patch-tfc-vault-token: VAULT_TOKEN is not set" >&2; exit 1; }
+
+VARIABLE="vault-token"
+TFC_WORKSPACE=$(cat .terraform/environment)
+VARIABLEID=$(get-tfc-variable-id "$VARIABLE" "$TFC_ORGANIZATION" "$TFC_WORKSPACE" "$TFC_API_TOKEN")
+JSON_DATA='{
+  "data": {
+    "id": "'"$VARIABLEID"'",
+    "attributes": {
+      "key": "'"$VARIABLE"'",
+      "value": "'"$VAULT_TOKEN"'",
+      "description": "",
+      "category": "terraform",
+      "hcl": false,
+      "sensitive": false
+    },
+    "type": "vars"
+  }
+}'
+curl --header "Authorization: Bearer $TFC_API_TOKEN" \
+  --header "Content-Type: application/vnd.api+json" \
+  --request PATCH --data "$JSON_DATA" \
+  "https://app.terraform.io/api/v2/vars/$VARIABLEID" | jq

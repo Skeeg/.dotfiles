@@ -5,6 +5,7 @@
 
 # PATH — set before the interactive guard so scripts that source .bashrc also benefit
 export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/bin/:$PATH"
 
 # blesh (ble.sh) — bash readline enhancement: inline autosuggestions + syntax highlighting.
 # Must be sourced before other readline customizations; --noattach defers activation
