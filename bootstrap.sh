@@ -24,9 +24,12 @@ BACKUP_DIR="$HOME/.dotfiles_backups/$(date +%Y_%m_%d_%H%M%S)"
 _update_mode=false
 
 # Files and directories to exclude from symlinking
+# NOTE: ".config" is excluded here and handled separately by
+# link_config_subdir() — see that function for why.
 EXCLUDE_LIST=(
   ".git"
   ".gitignore"
+  ".config"
   "bootstrap.sh"
   "merge_gitconfig.sh"
   "readme.md"
@@ -111,6 +114,52 @@ create_symlink() {
   fi
 }
 
+# Link only the entries inside .config that are actually tracked by this
+# repo (per .config/.gitignore's allowlist), while keeping ~/.config itself
+# a REAL directory rather than a symlink.
+#
+# Why: some apps (e.g. AWS VPN Client 6.0.3) security-check that config
+# paths they write under ~/.config are "canonical" — i.e. contain no
+# symlinks anywhere in the path — and abort on launch if ~/.config itself
+# is a symlink. Symlinking the whole .config directory wholesale (like the
+# generic top-level loop does for everything else) breaks those apps.
+# Symlinking only the individual tracked entries keeps dotfiles-managed
+# config in the repo while leaving ~/.config itself, and everything apps
+# create under it (auth tokens, caches, logs, etc.), untouched and local.
+link_config_subdir() {
+  local config_src="$DOTFILES_DIR/.config"
+  local config_target="$HOME/.config"
+
+  [[ -d "$config_src" ]] || return 0
+
+  print_info "Linking .config (selective — see comment in link_config_subdir)..."
+
+  # If ~/.config is currently a symlink (e.g. from an older bootstrap run
+  # or a fresh machine), back it up and replace with a real directory.
+  if [[ -L "$config_target" ]]; then
+    mkdir -p "$BACKUP_DIR"
+    mv "$config_target" "$BACKUP_DIR/.config.symlink-backup"
+    print_warning "Backed up existing ~/.config symlink to $BACKUP_DIR/.config.symlink-backup"
+  fi
+
+  mkdir -p "$config_target"
+
+  local gitignore="$config_src/.gitignore"
+  if [[ ! -f "$gitignore" ]]; then
+    print_warning ".config/.gitignore not found — skipping selective .config linking"
+    return 0
+  fi
+
+  # Tracked entries are the "!"-prefixed allowlist lines in .config/.gitignore
+  # (e.g. "!git/", "!starship.toml", "!claude/"). Reading it here means new
+  # allowlisted entries get symlinked automatically without editing this script.
+  local entry
+  while IFS= read -r entry; do
+    [[ -z "$entry" ]] && continue
+    create_symlink "$config_src/$entry" "$config_target/$entry"
+  done < <(grep -E '^!' "$gitignore" | sed -E 's/^!//; s#/$##')
+}
+
 # Main function to process dotfiles
 link_dotfiles() {
   print_info "Starting dotfiles linking process..."
@@ -140,7 +189,10 @@ link_dotfiles() {
     local target="$HOME/$basename"
     create_symlink "$item" "$target"
   done
-  
+
+  echo ""
+  link_config_subdir
+
   echo ""
   print_success "Dotfiles linking complete!"
   

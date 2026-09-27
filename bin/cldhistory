@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# View the Claude Code Bash command-history JSONL logs written by the
+# cmdhistory-pre/cmdhistory-post hooks (see .config/claude/hooks/README.md).
+#
+# Default:  one decoded command per line, from ~/.claude_cmdhistory
+# --full:   pretty-printed full JSON objects instead of just .command
+# --done:   read ~/.claude_cmdhistory_done (the post-hook log) instead
+#
+# --full and --done are independent flags and may be combined.
+#
+# Usage: cldhistory [--full] [--done]
+
+set -euo pipefail
+
+usage() {
+  echo "Usage: $(basename "$0") [--full] [--done]" >&2
+  exit 1
+}
+
+_FULL=0
+_DONE=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --full)
+      _FULL=1
+      shift
+      ;;
+    --done)
+      _DONE=1
+      shift
+      ;;
+    -h|--help)
+      usage
+      ;;
+    *)
+      usage
+      ;;
+  esac
+done
+
+_LOG_FILE="$HOME/.claude_cmdhistory"
+[ "$_DONE" -eq 1 ] && _LOG_FILE="$HOME/.claude_cmdhistory_done"
+
+if [ ! -f "$_LOG_FILE" ]; then
+  echo "cldhistory: no log file at $_LOG_FILE yet (has Claude Code run a Bash command since the hooks were installed?)" >&2
+  exit 1
+fi
+
+if [ "$_FULL" -eq 1 ]; then
+  jq '.' "$_LOG_FILE"
+else
+  jq -r '.command' "$_LOG_FILE"
+fi

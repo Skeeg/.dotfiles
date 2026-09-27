@@ -3,3 +3,7 @@
 !.gitignore
 !keybindings.json
 !statusline-command.sh
+!hooks/
+!hooks/cmdhistory-pre.sh
+!hooks/cmdhistory-post.sh
+!hooks/README.md

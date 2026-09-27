@@ -58,6 +58,7 @@ Notable plugins:
 - `terraform.plugin.sh` — workspace aliases, validation helpers, interactive workspace selector
 - `kubernetes.plugin.sh` — kube context switching aliases
 - `docker.plugin.sh` — docker/compose convenience wrappers
+- `claude.plugin.sh` — Claude Code bootstrap: idempotently merges the statusline config and the `cmdhistory` PreToolUse/PostToolUse hooks (see `.config/claude/hooks/README.md`) into `~/.claude/settings.json` at shell startup
 - `macos/functions.plugin.sh` — macOS-specific utilities (network, system, Finder integration)
 
 ### Environment Layering
