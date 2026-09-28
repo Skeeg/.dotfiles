@@ -189,11 +189,24 @@ _claude_bootstrap_links() {
   # Tool-managed skills in the .agents convention (e.g. `gcx agent skills
   # install`, which writes ~/.agents/skills/<name>/). Skip names already taken
   # by a tracked skill or a real directory.
+  #
+  # Routed families are NOT linked: a tracked router skill (skills/grafana-*)
+  # indexes them with one short description instead of each skill's long one,
+  # keeping always-loaded context small. A link left from before is removed.
+  local name dest
   for skill in "$HOME"/.agents/skills/*/; do
     [[ -d "$skill" ]] || continue
     skill="${skill%/}"
-    [[ -e "$HOME/.claude/skills/$(basename "$skill")" && ! -L "$HOME/.claude/skills/$(basename "$skill")" ]] && continue
-    _claude_link "$skill" "$HOME/.claude/skills/$(basename "$skill")"
+    name="$(basename "$skill")"
+    dest="$HOME/.claude/skills/$name"
+    case "$name" in
+      agento11y*|slo-*|synth-*)
+        [[ -L "$dest" && "$(readlink "$dest")" == "$skill" ]] && rm -f "$dest"
+        continue
+        ;;
+    esac
+    [[ -e "$dest" && ! -L "$dest" ]] && continue
+    _claude_link "$skill" "$dest"
   done
 }
 
