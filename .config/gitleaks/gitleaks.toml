@@ -1,0 +1,162 @@
+title = "Ryan's canonical gitleaks ruleset"
+
+# Canonical base for every gitleaks consumer (dotfiles: .config/gitleaks/gitleaks.toml,
+# live at ~/.config/gitleaks/gitleaks.toml). Consumers:
+#   - repo configs extend it:   [extend] path = "/etc/gitleaks/base.toml"
+#   - gitleaks containers mount it at /etc/gitleaks/base.toml (fixed path, so the
+#     same child config resolves in pre-commit hooks, Alloy and ad-hoc scans)
+#   - Alloy loki.secretfilter on ubuntuserver (sysadmin ADR-025)
+#   - ~/bin/secrets-redact (default --config)
+# Put portable rules and portable false-positive allowlists HERE; keep only
+# repo-specific rules/allowlists in a repo's .gitleaks.toml.
+#
+# JSONL-safe variants (*-jsonl): 68% of gitleaks default rules end with the
+# trailing boundary (?:[\x60'"\s;]|\\[nr]|$), which excludes ], } and , — the
+# JSON structural characters. Secrets embedded in JSON log lines, Claude JSONL
+# transcripts, or text like "[authorization: Bearer glsa_...]" are missed by the
+# defaults. The *-jsonl variants drop the trailing anchor; the token prefixes are
+# specific enough to avoid false positives. Benched 2026-09-27 through Alloy
+# v1.20.0: defaults leaked 7/30 fake tokens, this set 0/30.
+# Go RE2: no look-ahead/look-behind.
+
+[extend]
+useDefault = true
+
+# ── Custom rules ──────────────────────────────────────────────────────────────
+# Default ruleset reference: https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml
+
+[[rules]]
+  id = "grafana-service-account-token-jsonl"
+  description = "Grafana service account token (JSONL context, no trailing boundary)"
+  regex = '''glsa_[A-Za-z0-9]{32}_[A-Fa-f0-9]{8}'''
+  tags = ["grafana", "jsonl"]
+
+[[rules]]
+  id = "anthropic-api-key"
+  description = "Anthropic / Claude API key"
+  regex = '''sk-ant-(?:api\d\d-)?[A-Za-z0-9_\-]{90,}'''
+  tags = ["anthropic", "ai"]
+
+[[rules]]
+  id = "openai-api-key-classic-jsonl"
+  description = "OpenAI API key classic format (JSONL context, no trailing boundary)"
+  regex = '''sk-[A-Za-z0-9]{48}'''
+  tags = ["openai", "ai", "jsonl"]
+
+[[rules]]
+  id = "openai-api-key-project-jsonl"
+  description = "OpenAI API key project format (JSONL context, no trailing boundary)"
+  regex = '''sk-proj-[A-Za-z0-9_\-]{40,}'''
+  tags = ["openai", "ai", "jsonl"]
+
+[[rules]]
+  id = "github-token-jsonl"
+  description = "GitHub classic PAT / OAuth / App installation token (JSONL context)"
+  regex = '''gh[poas]_[A-Za-z0-9]{36}'''
+  tags = ["github", "jsonl"]
+
+[[rules]]
+  id = "github-fine-grained-pat-jsonl"
+  description = "GitHub fine-grained PAT (JSONL context)"
+  regex = '''github_pat_[A-Za-z0-9_]{82}'''
+  tags = ["github", "jsonl"]
+
+[[rules]]
+  id = "slack-token-jsonl"
+  description = "Slack bot / user / workspace / refresh token (JSONL context)"
+  regex = '''xox[baprs]-[0-9A-Za-z\-]{24,}'''
+  tags = ["slack", "jsonl"]
+
+[[rules]]
+  id = "1password-service-account-jsonl"
+  description = "1Password service account token (JSONL context)"
+  regex = '''ops_[A-Za-z0-9]{50,}'''
+  tags = ["1password", "jsonl"]
+
+[[rules]]
+  id = "jwt-token"
+  description = "JWT (three-part base64url) — common in AI session transcripts"
+  regex = '''ey[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}'''
+  tags = ["jwt"]
+
+[[rules]]
+  id = "pluralsight-identity-session"
+  description = "Pluralsight Identity.Session cookie (UUID session token)"
+  regex = '''Identity\.Session(?:\.\w+)?=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})'''
+  secretGroup = 1
+  tags = ["session", "pluralsight"]
+
+[[rules]]
+  id = "express-connect-sid"
+  description = "Express.js signed session cookie (connect.sid=s%3A<id>.<sig>)"
+  regex = '''connect\.sid=(s%3A[A-Za-z0-9_-]+\.[A-Za-z0-9%+_-]+)'''
+  secretGroup = 1
+  tags = ["session", "express"]
+
+[[rules]]
+  id = "aspnet-xsrf-token"
+  description = "ASP.NET Core XSRF/CSRF token (Data Protection format, CfDJ8 prefix)"
+  regex = '''XSRF-TOKEN=(CfDJ8[A-Za-z0-9_-]{40,})'''
+  secretGroup = 1
+  tags = ["csrf", "aspnet"]
+
+[[rules]]
+  id = "aspnet-antiforgery-cookie"
+  description = "ASP.NET Core antiforgery cookie (Data Protection format, CfDJ8 prefix)"
+  regex = '''\.AspNetCore\.Antiforgery\.[A-Za-z0-9_-]+=(CfDJ8[A-Za-z0-9_-]{40,})'''
+  secretGroup = 1
+  tags = ["csrf", "aspnet"]
+
+[[rules]]
+  id = "generic-openssl-uuid-token"
+  description = "UUID-formatted random key (openssl rand -hex 16 | sed) following 'Token ' or 'token '"
+  regex = '''[Tt]oken ([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})'''
+  secretGroup = 1
+  tags = ["generic", "uuid"]
+
+[[rules]]
+  id = "generic-openssl-base64-token"
+  description = "Random base64 key (openssl rand | base64 pattern) following 'Token ' or 'token '"
+  regex = '''[Tt]oken ([A-Za-z0-9+/]{32,}={0,2})'''
+  secretGroup = 1
+  tags = ["generic", "base64"]
+
+[[rules]]
+  id = "bruno-yaml-m2m-client-secret"
+  description = "Auth0 M2M client_secret value in Bruno Open Collection YAML environment"
+  regex = '''name:\s+m2m_client_secret\s+value:\s+([A-Za-z0-9_\-]{40,})'''
+  secretGroup = 1
+  tags = ["auth0", "m2m", "bruno"]
+
+[[rules]]
+  id = "bruno-yaml-named-secret"
+  description = "Secret/password value in Bruno Open Collection YAML environment (name contains sentinel keyword)"
+  regex = '''name:\s+\w*(?:secret|password|passwd|api_key|apikey)\w*\s+value:\s+([A-Za-z0-9_\-]{20,})'''
+  secretGroup = 1
+  tags = ["bruno", "yaml", "generic"]
+
+[[rules]]
+  id = "grafana-cloud-api-token-jsonl"
+  description = "Grafana Cloud API / access policy token (JSONL context, no trailing boundary)"
+  regex = '''glc_[A-Za-z0-9+/]{32,400}={0,2}'''
+  tags = ["grafana", "jsonl"]
+
+[[rules]]
+  id = "generic-credential-assignment-jsonl"
+  description = "High-entropy value assigned to a password/secret/token/api_key name (JSONL context). First value char excludes '/' so file paths (/run/secrets/...) don't match."
+  regex = '''(?i)[\w.-]{0,40}(?:passw(?:or)?d|secret|token|api[_-]?key)[\w.-]{0,20}\s{0,3}(?:=|:|=>)\s{0,3}["']?([A-Za-z0-9+_\-][A-Za-z0-9+/_\-]{15,127})'''
+  secretGroup = 1
+  entropy = 3.5
+  tags = ["generic", "jsonl"]
+
+# ── Portable allowlist ────────────────────────────────────────────────────────
+# Global allowlists propagate through [extend] path (verified 2026-09-27 in the
+# gitleaks CLI and Alloy v1.20.0). Document why each entry is safe.
+
+[allowlist]
+  description = "Portable false positive suppression"
+  regexes = [
+    # Syncthing device IDs — base32-encoded public node identifiers, not secrets.
+    # Format: XXXXXXX-XXXXXXX-XXXXXXX-XXXXXXX-XXXXXXX-XXXXXXX-XXXXXXX-XXXXXXX
+    '''[A-Z2-7]{7}-[A-Z2-7]{7}-[A-Z2-7]{7}-[A-Z2-7]{7}-[A-Z2-7]{7}-[A-Z2-7]{7}-[A-Z2-7]{7}-[A-Z2-7]{7}''',
+  ]
