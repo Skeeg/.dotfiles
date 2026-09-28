@@ -8,6 +8,7 @@
 #   what they do and why)
 # - attribution disabled (enforced) and outputStyle defaulted to Unslop (only
 #   if unset, so a /config choice sticks)
+# - baseline permission allow/deny rules (union only, never removes)
 #
 # Also symlinks the tracked global CLAUDE.md, output styles, and skills from
 # ~/.config/claude/ into ~/.claude/ (file/leaf level only).
@@ -119,6 +120,41 @@ _claude_bootstrap_preferences() {
   fi
 }
 
+# Baseline permission rules, adapted from Dane's allow list (2026-09-27). Union
+# only: entries are added if missing, never removed, so hand-added or /permissions
+# rules survive. docker:* is paired with denies for the stacks that anchor the
+# macvlan network (sysadmin CLAUDE.md rule 2). Deliberately NOT included: curl,
+# mv, source, pkill, python (system interpreter), poetry (uv owns Python),
+# Write(*)/Update(*).
+_claude_bootstrap_permissions() {
+  local settings="$HOME/.claude/settings.json" tmp
+  local allow='["Bash(head:*)","Bash(tail:*)","Bash(rg:*)","Bash(lsof:*)","Bash(echo:*)",
+    "Bash(go:*)","Bash(npm:*)","Bash(npx:*)","Bash(pnpm:*)","Bash(uv:*)","Bash(make:*)",
+    "Bash(deadcode:*)","Bash(touch:*)","Bash(mkdir:*)","Bash(docker:*)","Bash(sed:*)","Bash(chmod:*)"]'
+  local deny='["Bash(docker compose down:*)","Bash(docker system prune:*)"]'
+
+  [[ -f "$settings" ]]      || return 0
+  command -v jq &>/dev/null || return 0
+
+  # Already in the desired state — nothing to do
+  if jq -e --argjson a "$allow" --argjson d "$deny" \
+      '(($a - (.permissions.allow // [])) | length) == 0 and (($d - (.permissions.deny // [])) | length) == 0' \
+      "$settings" &>/dev/null; then
+    return 0
+  fi
+
+  tmp=$(mktemp "${settings}.XXXXXX") || return 0
+  if jq --argjson a "$allow" --argjson d "$deny" '
+      .permissions //= {}
+      | .permissions.allow = ((.permissions.allow // []) + ($a - (.permissions.allow // [])))
+      | .permissions.deny  = ((.permissions.deny  // []) + ($d - (.permissions.deny  // [])))
+    ' "$settings" > "$tmp" 2>/dev/null; then
+    mv "$tmp" "$settings"
+  else
+    rm -f "$tmp"
+  fi
+}
+
 # Symlink one tracked path into ~/.claude. File- or leaf-level only — never
 # ~/.claude itself (see CLAUDE.md § Directory Clobbering Risk). An existing
 # non-symlink target is moved to ~/.claude/backups/ once, then replaced.
@@ -154,6 +190,7 @@ _claude_bootstrap_links() {
 _claude_bootstrap_statusline
 _claude_bootstrap_cmdhistory_hooks
 _claude_bootstrap_preferences
+_claude_bootstrap_permissions
 _claude_bootstrap_links
 unset -f _claude_bootstrap_statusline _claude_bootstrap_cmdhistory_hooks _claude_merge_bash_hook \
-  _claude_bootstrap_preferences _claude_link _claude_bootstrap_links
+  _claude_bootstrap_preferences _claude_bootstrap_permissions _claude_link _claude_bootstrap_links
