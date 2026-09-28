@@ -58,7 +58,9 @@ Notable plugins:
 - `terraform.plugin.sh` — workspace aliases, validation helpers, interactive workspace selector
 - `kubernetes.plugin.sh` — kube context switching aliases
 - `docker.plugin.sh` — docker/compose convenience wrappers
-- `claude.plugin.sh` — Claude Code bootstrap: idempotently merges the statusline config and the `cmdhistory` PreToolUse/PostToolUse hooks (see `.config/claude/hooks/README.md`) into `~/.claude/settings.json` at shell startup
+- `claude.plugin.sh` — Claude Code bootstrap: idempotently merges the statusline config and the `cmdhistory` PreToolUse/PostToolUse hooks (see `.config/claude/hooks/README.md`) into `~/.claude/settings.json` at shell startup, enforces commit/PR `attribution` off and defaults `outputStyle` to Unslop. It also file-level symlinks the tracked global config from `.config/claude/` into `~/.claude/`: `CLAUDE.md` (the agent protocol), `output-styles/`, `skills/*`. Never symlink `~/.claude` itself (see Directory Clobbering Risk)
+- `claude-otel.plugin.sh` — exports Claude Code OTEL telemetry env only when the untracked `~/.config/claude/otel.local` holds an OTLP endpoint (the work laptop never sets it)
+- `mise.plugin.sh` — activates mise, which owns interpreters (Node, Go, Python); uv owns Python venvs. Replaces the retired `nvm`/`asdf` plugins
 - `macos/functions.plugin.sh` — macOS-specific utilities (network, system, Finder integration)
 
 ### Environment Layering
