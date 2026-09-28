@@ -185,6 +185,16 @@ _claude_bootstrap_links() {
     skill="${skill%/}"
     _claude_link "$skill" "$HOME/.claude/skills/$(basename "$skill")"
   done
+
+  # Tool-managed skills in the .agents convention (e.g. `gcx agent skills
+  # install`, which writes ~/.agents/skills/<name>/). Skip names already taken
+  # by a tracked skill or a real directory.
+  for skill in "$HOME"/.agents/skills/*/; do
+    [[ -d "$skill" ]] || continue
+    skill="${skill%/}"
+    [[ -e "$HOME/.claude/skills/$(basename "$skill")" && ! -L "$HOME/.claude/skills/$(basename "$skill")" ]] && continue
+    _claude_link "$skill" "$HOME/.claude/skills/$(basename "$skill")"
+  done
 }
 
 _claude_bootstrap_statusline
