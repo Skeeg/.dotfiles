@@ -156,6 +156,11 @@ link_config_subdir() {
   local entry
   while IFS= read -r entry; do
     [[ -z "$entry" ]] && continue
+    # Nested entries (e.g. "mise/config.toml") exist so git tracks the file.
+    # The parent directory is already symlinked, so linking the child would
+    # resolve through that symlink back to the repo file and replace it with
+    # a self-referencing symlink.
+    [[ "$entry" == */* ]] && continue
     create_symlink "$config_src/$entry" "$config_target/$entry"
   done < <(grep -E '^!' "$gitignore" | sed -E 's/^!//; s#/$##')
 }
