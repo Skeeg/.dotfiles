@@ -149,14 +149,48 @@ useDefault = true
   entropy = 3.5
   tags = ["generic", "jsonl"]
 
-# ── Portable allowlist ────────────────────────────────────────────────────────
-# Global allowlists propagate through [extend] path (verified 2026-09-27 in the
-# gitleaks CLI and Alloy v1.20.0). Document why each entry is safe.
+# ── Portable allowlists ───────────────────────────────────────────────────────
+# Untargeted [[allowlists]] propagate through [extend] path. Allowlists with
+# targetRules do NOT: verified 2026-09-30 on gitleaks v8.30.1, a targeted base
+# allowlist suppressed findings when the base was scanned directly but not in any
+# child that extends it. So never use targetRules here; narrow with
+# regexTarget = "match" and an anchored regex instead. Never regexTarget = "line":
+# a JSONL transcript line holds a whole conversation, so one benign token would
+# hide every real secret on it. The deprecated [allowlist] table cannot sit
+# alongside [[allowlists]] in one file (gitleaks refuses to load). Child configs
+# may still use [allowlist]. Alloy v1.20.0 was verified 2026-09-27 against the old
+# [allowlist] form only; test [[allowlists]] in Alloy before re-syncing its copy
+# (sysadmin grafana/gitleaks-base.toml). Document why each entry is safe.
 
-[allowlist]
-  description = "Portable false positive suppression"
+[[allowlists]]
+  description = "Syncthing device IDs"
   regexes = [
     # Syncthing device IDs — base32-encoded public node identifiers, not secrets.
     # Format: XXXXXXX-XXXXXXX-XXXXXXX-XXXXXXX-XXXXXXX-XXXXXXX-XXXXXXX-XXXXXXX
     '''[A-Z2-7]{7}-[A-Z2-7]{7}-[A-Z2-7]{7}-[A-Z2-7]{7}-[A-Z2-7]{7}-[A-Z2-7]{7}-[A-Z2-7]{7}-[A-Z2-7]{7}''',
+  ]
+
+[[allowlists]]
+  description = "OAuth client IDs"
+  # Client IDs are public identifiers (sent in browser redirects), not secrets.
+  # generic-api-key fires on them via the "auth"/"key" keywords (AUTH0_CLIENT_ID).
+  # The anchored match target holds the key name only for keyword rules;
+  # token-format rules (github-pat, ...) match just the token, so a real token
+  # stored under a *CLIENT_ID key still fires. *_CLIENT_SECRET is unaffected.
+  regexTarget = "match"
+  regexes = [
+    '''(?i)^[\w.-]*client[_.-]?id['"]?\s*(?:=|:|=>)''',
+  ]
+
+[[allowlists]]
+  description = "AWS Secrets Manager ARNs"
+  # arn:aws:secretsmanager:<region>:<acct>:secret:<name>-XXXXXX names a secret,
+  # it isn't one. generic-credential-assignment-jsonl matches from "secret:" to
+  # the end of the name. The anchored regex requires "secret:" with no space and
+  # an ARN-name charset ending in "/" (name prefix) or "-XXXXXX" (the 6-char
+  # suffix AWS appends), so "secret: <value>", "secret:<value>" and
+  # "API_SECRET:<value>" still fire.
+  regexTarget = "match"
+  regexes = [
+    '''^secret:[A-Za-z0-9/_+=.@-]*(?:/|-[A-Za-z0-9]{6})$''',
   ]
