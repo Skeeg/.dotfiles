@@ -149,6 +149,199 @@ useDefault = true
   entropy = 3.5
   tags = ["generic", "jsonl"]
 
+
+# ── Password / credential shapes (2026-10-01, password-leak harness) ─────────
+# Added after a harness of 30 leak shapes x 5 value kinds through gitleaks and
+# Alloy loki.secretfilter (plain, JSONL, and Claude Code OTLP attribute nesting)
+# found 60-75% of fake password leaks passing. Values: >= 8 chars, any printable
+# non-space except quotes/backslash; first char may not be $ < { ( so env
+# references, placeholders and templates pass; absolute paths and %VAR% /
+# %(name)s references pass via allowlists below. Quotes may carry 1-3
+# escaping backslashes (JSONL, and Claude Code OTLP attributes are JSON inside
+# JSON); a lone backslash never counts as a quote, so \u003c-escaped text
+# (Go's JSON encoder) is not misread. =\u003e and \u003c..\u003e cover => and
+# <tag> after that encoding.
+
+[[rules]]
+  id = "password-assignment"
+  description = "Password-like value assigned to a password/secret/token/api_key/pass/pwd name (env, YAML, JSON, INI, PHP; quotes may be JSON-escaped)"
+  regex = '''(?i)(?:passw(?:or)?d|passwd|(?:\b|_|\\[nrt])(?:pass|pwd|secret|token|api[_-]?key))(?:[_.][\w.]{0,20})?(?:\\{1,3}["']|["'])?[ \t]{0,3}(?:=>|=\\u003e|=|:)[ \t]{0,3}(?:\\{1,3}["']|["'])?([^\s"'\\$<>{}()\[\],;:|`-][^\s"'\\<>{}()\[\],;:|`]{7,127})'''
+  secretGroup = 1
+  entropy = 2.5
+  keywords = ["pass", "pwd", "secret", "token", "api_key", "apikey", "api-key"]
+  tags = ["password", "generic"]
+  [[rules.allowlists]]
+    # Scoped to this rule so it cannot suppress other rules' findings.
+    description = "password-assignment: pointers, references, names, markers"
+    regexTarget = "match"
+    regexes = [
+      # *_FILE keys name a file: PASSWORD_FILE=/run/secrets/x, WEBPASSWORD_FILE: name
+      '''(?i)^[\w.-]*_FILE(?:\\{1,3}["']|["'])?\s{0,3}(?:=|:)''',
+      # metadata keys: secret_name, token_type, token_url, password_min_length ...
+      '''(?i)^[\w.-]*(?:_name|_id|_type|_url|_uri|_path|_ref|_arn|_env|_length|_policy|_ttl|_expiry|_expires|_hint)(?:\\{1,3}["']|["'])?\s{0,3}(?:=|:)''',
+      # value is an absolute path, %VAR% (Windows) or %(name)s (Python)
+      '''(?:=|:)\s{0,3}(?:\\{1,3}["']|["'])?/[\w.@/-]*$''',
+      '''(?:=|:)\s{0,3}(?:\\{1,3}["']|["'])?%(?:[A-Za-z_][A-Za-z0-9_]*%|\([\w.]+\)s)$''',
+      # value is an env var name (UPPER_SNAKE with an underscore)
+      '''(?:=|:)\s{0,3}(?:\\{1,3}["']|["'])?[A-Z][A-Z0-9]*_[A-Z0-9_]+(?:\.[a-z]{1,5})?$''',
+      # value is a dotted code identifier: config.db_password, self.token, os.environ
+      '''(?:=|:)\s{0,3}(?:\\{1,3}["']|["'])?[a-z_][a-z0-9_]*(?:\.[a-z_][a-z0-9_]*)+$''',
+      # inside a redaction marker (<ALLOY-REDACTED-SECRET:rule:hash>, REDACTED)
+      '''REDACTED''',
+      # the rule-id part of a marker: SECRET:github-pat, SECRET:generic-credential-assignment-jsonl
+      '''(?i)^SECRET:[a-z]+(?:-[a-z0-9]+)+$''',
+    ]
+  [[rules.allowlists]]
+    description = "placeholders and already-redacted text"
+    regexTarget = "secret"
+    regexes = [
+      '''(?i)^(?:changeme|change_me|placeholder|example|redacted|secret|password|passw0rd|your[_-]?[a-z_]*|x{3,}|\*{3,}|todo|tbd|none|null|dummy|test|testing|sample|hunter2)\d{0,2}$''',
+      '''REDACTED''',
+    ]
+
+[[rules]]
+  id = "url-userinfo-password"
+  description = "Password in URL userinfo (scheme://user:password@host)"
+  regex = '''[a-zA-Z][a-zA-Z0-9+.-]{1,20}://[^\s:/@"'\\]{0,64}:([^\s:/@"'\\<\[${][^\s:/@"'\\]{5,127})@[\w.-]+'''
+  secretGroup = 1
+  entropy = 2.5
+  keywords = ["://"]
+  tags = ["password", "url"]
+  [[rules.allowlists]]
+    description = "placeholders and already-redacted text"
+    regexTarget = "secret"
+    regexes = [
+      '''(?i)^(?:changeme|change_me|placeholder|example|redacted|secret|password|passw0rd|your[_-]?[a-z_]*|x{3,}|\*{3,}|todo|tbd|none|null|dummy|test|testing|sample|hunter2)\d{0,2}$''',
+      '''REDACTED''',
+    ]
+
+[[rules]]
+  id = "cli-password-flag"
+  description = "Password passed as a CLI flag (--password=x, --password x, --passwd, --pass, sshpass -p x)"
+  regex = '''(?i)(?:--(?:password|passwd|pass|pwd)|\bsshpass\s+-p)(?:=|\s+)(?:\\{1,3}["']|["'])?([^\s"'\\$<{(-][^\s"'\\]{5,127})'''
+  secretGroup = 1
+  entropy = 2.5
+  keywords = ["--pass", "--pwd", "sshpass"]
+  tags = ["password", "cli"]
+  [[rules.allowlists]]
+    description = "placeholders and already-redacted text"
+    regexTarget = "secret"
+    regexes = [
+      '''(?i)^(?:changeme|change_me|placeholder|example|redacted|secret|password|passw0rd|your[_-]?[a-z_]*|x{3,}|\*{3,}|todo|tbd|none|null|dummy|test|testing|sample|hunter2)\d{0,2}$''',
+      '''REDACTED''',
+    ]
+
+[[rules]]
+  id = "mysql-inline-password"
+  description = "mysql/mariadb client password glued to -p (-pSECRET)"
+  regex = '''\b(?:mysql|mariadb|mysqldump|mysqladmin)\b[^\n|;&]{0,80}?\s-p([^\s"'\\$<{(-][^\s"'\\]{5,127})'''
+  secretGroup = 1
+  entropy = 2.5
+  keywords = ["mysql", "mariadb"]
+  tags = ["password", "cli"]
+  [[rules.allowlists]]
+    description = "placeholders and already-redacted text"
+    regexTarget = "secret"
+    regexes = [
+      '''(?i)^(?:changeme|change_me|placeholder|example|redacted|secret|password|passw0rd|your[_-]?[a-z_]*|x{3,}|\*{3,}|todo|tbd|none|null|dummy|test|testing|sample|hunter2)\d{0,2}$''',
+      '''REDACTED''',
+    ]
+
+[[rules]]
+  id = "curl-user-password"
+  description = "curl -u/--user user:password"
+  regex = '''\bcurl\b[^\n|;&]{0,200}?\s(?:-u|--user)\s+(?:\\{1,3}["']|["'])?[^\s:"'\\]{1,64}:([^\s"'\\<\[${][^\s"'\\]{5,127})'''
+  secretGroup = 1
+  entropy = 2.5
+  keywords = ["curl"]
+  tags = ["password", "cli"]
+  [[rules.allowlists]]
+    description = "placeholders and already-redacted text"
+    regexTarget = "secret"
+    regexes = [
+      '''(?i)^(?:changeme|change_me|placeholder|example|redacted|secret|password|passw0rd|your[_-]?[a-z_]*|x{3,}|\*{3,}|todo|tbd|none|null|dummy|test|testing|sample|hunter2)\d{0,2}$''',
+      '''REDACTED''',
+    ]
+
+[[rules]]
+  id = "smb-user-percent-password"
+  description = "smbclient/mount.cifs -U user%password"
+  regex = '''\s-U\s+(?:\\{1,3}["']|["'])?[^\s%"'\\]{1,64}%([^\s"'\\<\[${][^\s"'\\]{5,127})'''
+  secretGroup = 1
+  entropy = 2.5
+  keywords = ["-u "]
+  tags = ["password", "cli"]
+  [[rules.allowlists]]
+    description = "placeholders and already-redacted text"
+    regexTarget = "secret"
+    regexes = [
+      '''(?i)^(?:changeme|change_me|placeholder|example|redacted|secret|password|passw0rd|your[_-]?[a-z_]*|x{3,}|\*{3,}|todo|tbd|none|null|dummy|test|testing|sample|hunter2)\d{0,2}$''',
+      '''REDACTED''',
+    ]
+
+[[rules]]
+  id = "http-basic-auth-header"
+  description = "HTTP Authorization: Basic <base64 user:password>"
+  regex = '''(?i)authorization:\s*basic\s+([A-Za-z0-9+/]{12,}={0,2})'''
+  secretGroup = 1
+  keywords = ["basic"]
+  tags = ["password", "http"]
+  [[rules.allowlists]]
+    description = "placeholders and already-redacted text"
+    regexTarget = "secret"
+    regexes = [
+      '''(?i)^(?:changeme|change_me|placeholder|example|redacted|secret|password|passw0rd|your[_-]?[a-z_]*|x{3,}|\*{3,}|todo|tbd|none|null|dummy|test|testing|sample|hunter2)\d{0,2}$''',
+      '''REDACTED''',
+    ]
+
+[[rules]]
+  id = "xml-password-element"
+  description = "Password in an XML element (<password>x</password>)"
+  regex = '''(?i)(?:<|\\u003c)(?:password|passwd|pwd|secret)(?:>|\\u003e)([^<\s\\]{6,128})(?:<|\\u003c)/'''
+  secretGroup = 1
+  entropy = 2.5
+  keywords = ["pass", "pwd", "secret"]
+  tags = ["password", "xml"]
+  [[rules.allowlists]]
+    description = "placeholders and already-redacted text"
+    regexTarget = "secret"
+    regexes = [
+      '''(?i)^(?:changeme|change_me|placeholder|example|redacted|secret|password|passw0rd|your[_-]?[a-z_]*|x{3,}|\*{3,}|todo|tbd|none|null|dummy|test|testing|sample|hunter2)\d{0,2}$''',
+      '''REDACTED''',
+    ]
+
+[[rules]]
+  id = "cli-tool-password-arg"
+  description = "Password passed to a tool's own short flag or positional slot: redis-cli -a, ldap* -w, docker/podman/helm login -p, htpasswd -b, .netrc"
+  regex = '''(?:\bredis-cli\b[^\n|;&]{0,160}?\s-a|\bldap(?:search|add|modify|delete|passwd|whoami|compare|modrdn)\b[^\n|;&]{0,200}?\s-w|\b(?:docker|podman|nerdctl|helm(?:\s+registry)?)\s+login\b[^\n|;&]{0,200}?\s-p|\bmachine\s+[^\s]+\s+login\s+[^\s]+\s+password)[ \t]+(?:\\{1,3}["']|["'])?([^\s"'\\$<{(\[-][^\s"'\\]{5,127})'''
+  secretGroup = 1
+  entropy = 2.5
+  keywords = ["redis-cli", "ldap", "login", "machine"]
+  tags = ["password", "cli"]
+  [[rules.allowlists]]
+    description = "placeholders and already-redacted text"
+    regexTarget = "secret"
+    regexes = [
+      '''(?i)^(?:changeme|change_me|placeholder|example|redacted|secret|password|passw0rd|your[_-]?[a-z_]*|x{3,}|\*{3,}|todo|tbd|none|null|dummy|test|testing|sample|hunter2)\d{0,2}$''',
+      '''REDACTED''',
+    ]
+
+[[rules]]
+  id = "htpasswd-batch-password"
+  description = "htpasswd -b (batch mode) takes the password as its last argument"
+  regex = '''\bhtpasswd\b[^\n|;&]{0,40}?\s-[a-zA-Z]*b[a-zA-Z]*\s+(?:[^\s]+\s+){1,2}(?:\\{1,3}["']|["'])?([^\s"'\\$<{(\[-][^\s"'\\]{5,127})(?:\\{1,3}["']|["'])?[ \t]*(?:$|[|;&\n\\"])'''
+  secretGroup = 1
+  entropy = 2.5
+  keywords = ["htpasswd"]
+  tags = ["password", "cli"]
+  [[rules.allowlists]]
+    description = "placeholders and already-redacted text"
+    regexTarget = "secret"
+    regexes = [
+      '''(?i)^(?:changeme|change_me|placeholder|example|redacted|secret|password|passw0rd|your[_-]?[a-z_]*|x{3,}|\*{3,}|todo|tbd|none|null|dummy|test|testing|sample|hunter2)\d{0,2}$''',
+      '''REDACTED''',
+    ]
+
 # ── Portable allowlists ───────────────────────────────────────────────────────
 # Untargeted [[allowlists]] propagate through [extend] path. Allowlists with
 # targetRules do NOT: verified 2026-09-30 on gitleaks v8.30.1, a targeted base
@@ -158,9 +351,10 @@ useDefault = true
 # a JSONL transcript line holds a whole conversation, so one benign token would
 # hide every real secret on it. The deprecated [allowlist] table cannot sit
 # alongside [[allowlists]] in one file (gitleaks refuses to load). Child configs
-# may still use [allowlist]. Alloy v1.20.0 was verified 2026-09-27 against the old
-# [allowlist] form only; test [[allowlists]] in Alloy before re-syncing its copy
-# (sysadmin grafana/gitleaks-base.toml). Document why each entry is safe.
+# may still use [allowlist]. Alloy v1.20.0 loads [[allowlists]] and rule-level
+# [[rules.allowlists]] (verified 2026-10-01, including through [extend]); still test
+# changes in a scratch Alloy before re-syncing its copy (sysadmin
+# grafana/gitleaks-base.toml). Document why each entry is safe.
 
 [[allowlists]]
   description = "Syncthing device IDs"
