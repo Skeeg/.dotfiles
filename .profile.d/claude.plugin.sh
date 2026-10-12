@@ -13,6 +13,9 @@
 # Also symlinks the tracked global CLAUDE.md, output styles, and skills from
 # ~/.config/claude/ into ~/.claude/ (file/leaf level only).
 #
+# Also registers a prompt hook that resets stuck terminal keyboard modes left
+# behind by a Claude Code session that died without cleanup.
+#
 # Runs at shell startup; idempotent and silent on success.
 # Skips silently if: Claude Code not installed, jq not available,
 # or the relevant config is already present.
@@ -209,6 +212,22 @@ _claude_bootstrap_links() {
     _claude_link "$skill" "$dest"
   done
 }
+
+# Claude Code turns on terminal keyboard modes (modifyOtherKeys, kitty
+# keyboard protocol, focus reporting). If the session dies without cleanup, for
+# example an ssh link dropped by sleep, iTerm2 keeps them on and ctrl+c arrives
+# as `ESC[27;5;99~` instead of 0x03. Resetting at every prompt is harmless when
+# the modes are already off.
+_claude_reset_terminal_modes() {
+  printf '\e[>4;0m\e[<u\e[?1004l'
+}
+
+if [[ -n "$ZSH_VERSION" ]]; then
+  autoload -Uz add-zsh-hook
+  add-zsh-hook precmd _claude_reset_terminal_modes
+elif [[ -n "$BASH_VERSION" ]]; then
+  PROMPT_COMMAND="_claude_reset_terminal_modes;${PROMPT_COMMAND:-}"
+fi
 
 _claude_bootstrap_statusline
 _claude_bootstrap_cmdhistory_hooks
