@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Runs glab from the official image instead of a host install.
+# Auth: export GITLAB_TOKEN (PAT, read_api scope). GITLAB_HOST optional for self-hosted.
+exec docker run --rm -i -e GITLAB_TOKEN -e GITLAB_HOST gitlab/glab:latest glab "$@"
