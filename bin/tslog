@@ -5,7 +5,7 @@
 #
 # Usage:
 #   tslog some-command --its --own --flags
-#   TSLOG_FILE=/path/to/log tslog gittyup --stash-switch-pull-pop
+#   TSLOG_FILE=/path/to/log tslog gittyup
 #
 # TSLOG_FILE, if set, additionally appends the tagged output to that file
 # (still shown live on the terminal). Unset means terminal only.

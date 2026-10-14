@@ -1,49 +1,14 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC2154
+# Align every repo under REPOPATH with its remotes without touching work in
+# progress: fetch --all --prune, then fast-forward each local branch that is
+# strictly behind its upstream. Never stashes, switches, merges or rebases.
+# Branches that cannot fast-forward are listed in a summary at the end, and
+# the exit status is 1 when any repo needs attention.
+#
+# Usage: gittyup [--repo-path PATH]
 
-_git_default_branch() {
-  local remote
-  if git remote | grep -qx origin; then
-    remote="origin"
-  else
-    remote="$(git remote)"
-    if [ "$(printf '%s\n' "$remote" | wc -l)" -ne 1 ]; then
-      echo "gittyup: cannot determine default branch — no 'origin' remote and repo has $(git remote | wc -l) remotes" >&2
-      return 1
-    fi
-  fi
-  git remote show "$remote" | grep "HEAD branch" | sed 's/.*: //'
-}
-
-_git_switch_default() {
-  local default_branch
-  default_branch="$(_git_default_branch)" || return 1
-  [ "$(git branch --show-current)" = "$default_branch" ] && return 0
-  git switch "$default_branch"
-}
-
-_git_is_repo() {
-  git -C "$1" rev-parse --is-inside-work-tree >/dev/null 2>&1
-}
-
-_git_stash_if_needed() {
-  if [ -n "$(git status --porcelain)" ]; then
-    git stash
-    return 0
-  fi
-  return 1
-}
-
-_set_mode() {
-  if [ "$_MODE" != "default" ]; then
-    echo "gittyup: only one of --auto-switch-on-missing, --switch-pull, --stash-switch-pull, --stash-switch-pull-pop may be specified." >&2
-    exit 1
-  fi
-  _MODE="$1"
-}
-
-unset _REPO_PATH _FAIL_PULL
-_MODE="default"
+unset _REPO_PATH
+_ISSUES=()
 
 if [ -n "${REPOPATH+x}" ]; then _REPO_PATH="$REPOPATH"; fi
 
@@ -54,20 +19,8 @@ while [[ $# -gt 0 ]]; do
       _REPO_PATH="$2"
       shift 2
       ;;
-    --auto-switch-on-missing)
-      _set_mode "auto-switch"
-      shift
-      ;;
-    --switch-pull)
-      _set_mode "switch-pull"
-      shift
-      ;;
-    --stash-switch-pull)
-      _set_mode "stash-switch-pull"
-      shift
-      ;;
-    --stash-switch-pull-pop)
-      _set_mode "stash-switch-pull-pop"
+    --auto-switch-on-missing|--switch-pull|--stash-switch-pull|--stash-switch-pull-pop)
+      echo "gittyup: $key is ignored; gittyup now only fetches and fast-forwards" >&2
       shift
       ;;
     *)
@@ -81,47 +34,85 @@ if [ -z "$_REPO_PATH" ]; then
   exit 1
 fi
 
+_git_is_repo() {
+  git -C "$1" rev-parse --is-inside-work-tree >/dev/null 2>&1
+}
+
+# First error/fatal line of git output, falling back to its last line.
+_reason() {
+  local line
+  line="$(printf '%s\n' "$1" | grep -m 1 -E '^(error|fatal):')"
+  [ -z "$line" ] && line="$(printf '%s\n' "$1" | tail -n 1)"
+  printf '%s' "$line"
+}
+
+_issue() {
+  _ISSUES+=("$1: $2")
+  printf "  ! %s\n" "$2"
+}
+
+# Fast-forward one branch to its upstream. The checked-out branch goes through
+# merge --ff-only, which refuses rather than overwrite uncommitted changes.
+# Any other branch goes through a local fetch, which refuses non-fast-forward
+# updates and branches checked out in another worktree.
+_git_ff_branch() {
+  local folder="$1" branch="$2" upstream="$3" current="$4"
+  if [ "$branch" = "$current" ]; then
+    git -C "$folder" merge --ff-only --quiet "$upstream" 2>&1
+  else
+    git -C "$folder" fetch --quiet . "$upstream:refs/heads/$branch" 2>&1
+  fi
+}
+
 for folder in "$_REPO_PATH"/*/; do
   printf "Syncing %s\n" "$folder"
 
   if ! _git_is_repo "$folder"; then
-    echo "gittyup: $folder is not a git repository, skipping"
+    echo "  skipped: not a git repository"
     continue
   fi
 
-  case "$_MODE" in
-    switch-pull)
-      (cd "$folder" && _git_switch_default && git pull)
-      ;;
-    stash-switch-pull)
-      (
-        cd "$folder" || exit 1
-        _git_stash_if_needed
-        _git_switch_default && git pull
-      )
-      ;;
-    stash-switch-pull-pop)
-      (
-        cd "$folder" || exit 1
-        _stashed=0
-        _git_stash_if_needed && _stashed=1
-        _git_switch_default && git pull
-        [ "$_stashed" -eq 1 ] && git stash pop
-      )
-      ;;
-    auto-switch)
-      git -C "$folder" pull
-      _FAIL_PULL=$?
-      [[ $_FAIL_PULL == 1 ]] && {
-        [[ $(git -C "$folder" pull 2> >(grep -c -e 'no such ref was fetched')) == 1 ]] && {
-          (cd "$folder" && _git_switch_default && git pull)
-        }
-      }
-      ;;
-    *)
-      git -C "$folder" pull
-      ;;
-  esac
+  if [ -z "$(git -C "$folder" remote)" ]; then
+    echo "  skipped: no remotes"
+    continue
+  fi
+
+  if ! _fetch_out="$(git -C "$folder" fetch --all --prune --quiet 2>&1)"; then
+    _issue "$folder" "fetch failed: $(_reason "$_fetch_out")"
+    continue
+  fi
+
+  _current="$(git -C "$folder" symbolic-ref --quiet --short HEAD)"
+
+  while IFS=$'\t' read -r _branch _upstream _upstream_short _track; do
+    [ -z "$_upstream" ] && continue
+    case "$_track" in
+      "")
+        ;;
+      gone)
+        printf "  %s: upstream %s is gone\n" "$_branch" "$_upstream_short"
+        ;;
+      *ahead*behind*)
+        _issue "$folder" "$_branch diverged from $_upstream_short ($_track)"
+        ;;
+      ahead*)
+        printf "  %s: %s, not pushed\n" "$_branch" "$_track"
+        ;;
+      behind*)
+        if _ff_out="$(_git_ff_branch "$folder" "$_branch" "$_upstream" "$_current")"; then
+          printf "  %s: fast-forwarded (%s)\n" "$_branch" "$_track"
+        else
+          _issue "$folder" "$_branch could not fast-forward ($_track): $(_reason "$_ff_out")"
+        fi
+        ;;
+    esac
+  done < <(git -C "$folder" for-each-ref \
+    --format='%(refname:short)%09%(upstream)%09%(upstream:short)%09%(upstream:track,nobracket)' \
+    refs/heads)
 done
 
-unset _REPO_PATH _MODE _FAIL_PULL
+if [ "${#_ISSUES[@]}" -gt 0 ]; then
+  printf "\nNeeds attention:\n"
+  printf "  %s\n" "${_ISSUES[@]}"
+  exit 1
+fi

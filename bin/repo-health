@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Flag repos under REPOPATH with an un-popped stash, an in-progress merge, or
-# unmerged paths - the state a failed `gittyup --stash-switch-pull-pop`
-# leaves behind when `git stash pop` hits a conflict.
+# unmerged paths - the state a `git stash pop` or merge leaves behind when it conflicts.
 #
 # Usage: repo-health [--repo-path PATH]
 
