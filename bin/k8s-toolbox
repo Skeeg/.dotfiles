@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Runs Kubernetes CLIs from the k8s-toolbox image instead of host installs.
+# Call as `k8s-toolbox <tool> args...`, or through a symlink in
+# bin/k8s-toolbox.d/ named after the tool (kubectl, helm, k3d, ...).
+#   k8s-toolbox build [docker build args]   rebuild the image
+#   k8s-toolbox shell                       bash inside the toolbox
+# The image builds itself on first use. Dockerfile: docker/k8s-toolbox/.
+set -euo pipefail
+
+image=k8s-toolbox:local
+context=$(dirname "$(readlink -f "$0")")/../docker/k8s-toolbox
+
+tool=$(basename "$0")
+if [[ $tool == k8s-toolbox ]]; then
+  tool=${1:?usage: k8s-toolbox <tool|build|shell> [args...]}
+  shift
+fi
+
+case $tool in
+  build) exec docker build -t "$image" "$@" "$context" ;;
+  shell) tool=bash ;;
+esac
+
+docker image inspect "$image" >/dev/null 2>&1 || docker build -t "$image" "$context" >&2
+
+# Tool state lives at its usual host path, mounted at the same path inside.
+# Create the dirs first, or Docker creates missing ones owned by root.
+state=(
+  "$HOME/.kube"                                     # kubeconfig, kubectx history
+  "$HOME/.config/helm" "$HOME/.cache/helm" "$HOME/.local/share/helm"
+  "$HOME/.config/k9s" "$HOME/.local/share/k9s" "$HOME/.local/state/k9s"
+  "$HOME/.minikube"
+)
+mkdir -p "${state[@]}"
+mounts=()
+for d in "${state[@]}"; do mounts+=(-v "$d:$d"); done
+
+tty=()
+[[ -t 0 && -t 1 ]] && tty=(-t)
+
+# --network host: port-forward and the cluster API on 127.0.0.1 behave as on the host.
+# Same-path $PWD mount: k3d and kind hand host paths to the Docker daemon.
+# --user + --group-add: files stay owned by you and the socket is reachable.
+# The socket mount is root-equivalent on the host, same as the docker group.
+# /etc/passwd and /etc/group: some tools look the uid up and fail without an entry.
+exec docker run --rm -i "${tty[@]}" --init --network host \
+  --user "$(id -u):$(id -g)" --group-add "$(stat -c %g /var/run/docker.sock)" \
+  -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro \
+  -e HOME -e USER -e TERM -e KUBECONFIG \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  "${mounts[@]}" \
+  -v "$PWD:$PWD" -w "$PWD" \
+  "$image" "$tool" "$@"

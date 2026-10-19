@@ -6,6 +6,9 @@
 # PATH — set before the interactive guard so scripts that source .bashrc also benefit
 export PATH="$HOME/.local/bin:$PATH"
 export PATH="$HOME/bin/:$PATH"
+# Kubernetes CLIs from the k8s-toolbox image, only where no real kubectl is installed
+command -v kubectl >/dev/null 2>&1 || [[ ! -d "$HOME/bin/k8s-toolbox.d" ]] \
+  || export PATH="$PATH:$HOME/bin/k8s-toolbox.d"
 
 # blesh (ble.sh) — bash readline enhancement: inline autosuggestions + syntax highlighting.
 # Must be sourced before other readline customizations; --noattach defers activation

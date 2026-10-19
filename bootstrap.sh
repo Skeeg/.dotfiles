@@ -36,6 +36,7 @@ EXCLUDE_LIST=(
   "README.md"
   "Dockerfile"
   "Dockerfile.generated"
+  "docker"
   "context_portal"
   ".profile.d/merge_content"
 )
