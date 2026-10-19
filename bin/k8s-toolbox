@@ -27,6 +27,7 @@ docker image inspect "$image" >/dev/null 2>&1 || docker build -t "$image" "$cont
 # Create the dirs first, or Docker creates missing ones owned by root.
 state=(
   "$HOME/.kube"                                     # kubeconfig, kubectx history
+  "$HOME/.config/k3d"                               # k3d kubeconfig write, standalone kubeconfigs
   "$HOME/.config/helm" "$HOME/.cache/helm" "$HOME/.local/share/helm"
   "$HOME/.config/k9s" "$HOME/.local/share/k9s" "$HOME/.local/state/k9s"
   "$HOME/.minikube"
