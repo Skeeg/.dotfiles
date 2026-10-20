@@ -11,6 +11,9 @@ KUBECONFIG=$HOME/.kube/config
 KUBE_CONFIG_PATH=$KUBECONFIG
 export KUBECONFIG KUBE_CONFIG_PATH
 
+# Shorthand
+alias k='kubectl'
+
 # Kube contexts
 alias kubeprod="kubectx $SHARED_EKS_PRODUCTION_APP_CLUSTER ; "
 alias kubepuat="kubectx $SHARED_EKS_UAT_APP_CLUSTER ; "
