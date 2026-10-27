@@ -3,6 +3,7 @@ package cmdname
 
 import (
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -26,8 +27,9 @@ var assignment = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=`)
 // the entry is valid by rule: a path, a word that can't be judged, or no
 // command at all.
 func Name(command string) (name string, check bool) {
-	line, _, _ := strings.Cut(command, "\n")
+	line, _, _ := strings.Cut(strings.ReplaceAll(command, "\\\n", " "), "\n")
 	words := split(strings.TrimLeft(line, " \t("))
+	words = slices.DeleteFunc(words, func(w string) bool { return w == `\` })
 
 	i := 0
 	skipAssignments := func() {
@@ -63,12 +65,15 @@ func Name(command string) (name string, check bool) {
 		return wrapper, wrapper != ""
 	}
 
-	word := words[i]
+	// A leading backslash skips aliases ("\ls") and is not part of the name.
+	word := strings.TrimPrefix(words[i], `\`)
 	if cut := strings.IndexAny(word, ";|&<>)"); cut >= 0 {
 		word = word[:cut]
 	}
 	switch {
 	case word == "":
+		return "", false
+	case strings.HasPrefix(word, "#"):
 		return "", false
 	case strings.Contains(word, "/"):
 		return "", false

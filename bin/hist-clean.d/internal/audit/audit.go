@@ -76,3 +76,19 @@ func onPath(name string, dirs []string) bool {
 	}
 	return false
 }
+
+// DropCommon removes groups with limit or more entries. A name typed that
+// often is a real tool missing from this machine, not a typo. A limit of
+// zero or less keeps every group.
+func DropCommon(groups []Group, limit int) []Group {
+	if limit <= 0 {
+		return groups
+	}
+	var out []Group
+	for _, g := range groups {
+		if len(g.Entries) < limit {
+			out = append(out, g)
+		}
+	}
+	return out
+}
