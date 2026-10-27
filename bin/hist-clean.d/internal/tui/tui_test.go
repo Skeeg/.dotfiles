@@ -46,6 +46,10 @@ func keyMsg(k string) tea.KeyMsg {
 		return tea.KeyMsg{Type: tea.KeyLeft}
 	case "right":
 		return tea.KeyMsg{Type: tea.KeyRight}
+	case "pgup":
+		return tea.KeyMsg{Type: tea.KeyPgUp}
+	case "pgdown":
+		return tea.KeyMsg{Type: tea.KeyPgDown}
 	case "ctrl+c":
 		return tea.KeyMsg{Type: tea.KeyCtrlC}
 	}
@@ -567,6 +571,83 @@ func TestLineFooterMentionsFoldKeys(t *testing.T) {
 	for _, want := range []string{"x expand/collapse", "X all"} {
 		if !strings.Contains(m.View(), want) {
 			t.Errorf("footer lacks %q:\n%s", want, m.View())
+		}
+	}
+}
+
+// tall(30) at height 12 shows 8 rows, so one page is 8 rows.
+func TestPageDownMovesOneScreenInList(t *testing.T) {
+	m := resize(tall(30), 12)
+	m, _ = press(m, "pgdown", " ")
+	assertFits(t, m, 12)
+	assertMark(t, m, "name-07", "[x]")
+	m, _ = press(m, "pgdown", " ")
+	assertFits(t, m, 12)
+	assertMark(t, m, "name-15", "[x]")
+}
+
+func TestPageUpMovesBackOneScreenInList(t *testing.T) {
+	m := resize(tall(30), 12)
+	m, _ = press(m, "pgdown", "pgdown", "pgup", " ")
+	assertFits(t, m, 12)
+	assertMark(t, m, "name-07", "[x]")
+}
+
+func TestPagingStopsAtEndsOfList(t *testing.T) {
+	m := resize(tall(30), 12)
+	m, _ = press(m, "pgup", " ")
+	assertMark(t, m, "many", "[x]")
+	m, _ = press(m, repeat("pgdown", 10)...)
+	m, _ = press(m, " ")
+	assertFits(t, m, 12)
+	assertMark(t, m, "name-29", "[x]")
+}
+
+func TestPagingInLineView(t *testing.T) {
+	m := resize(tall(30), 12)
+	m, _ = press(m, "enter", "pgdown", " ")
+	assertFits(t, m, 12)
+	assertMark(t, m, "cmd-08", "[ ]")
+	m, _ = press(m, "pgup", " ")
+	assertMark(t, m, "cmd-00", "[ ]")
+	m, _ = press(m, repeat("pgdown", 10)...)
+	m, _ = press(m, " ")
+	assertFits(t, m, 12)
+	assertMark(t, m, "cmd-29", "[ ]")
+}
+
+func TestPagingInLineViewCountsScreenLines(t *testing.T) {
+	// Height 9 shows 5 screen lines. The first row takes 4, so a page is one row.
+	m := resize(multi(), 9)
+	m, _ = press(m, "enter", "pgdown")
+	assertFits(t, m, 9)
+	if !strings.Contains(m.View(), "echo three") {
+		t.Errorf("second row not shown after one page down:\n%s", m.View())
+	}
+	m, _ = press(m, "pgdown")
+	assertFits(t, m, 9)
+	if !strings.Contains(m.View(), "third-cmd") {
+		t.Errorf("third row not shown after two pages down:\n%s", m.View())
+	}
+	m, _ = press(m, "pgup", "pgup")
+	if !strings.Contains(m.View(), "echo one") {
+		t.Errorf("first row not shown after paging back up:\n%s", m.View())
+	}
+}
+
+func TestPagingWithoutKnownHeightJumpsToEnds(t *testing.T) {
+	m, _ := press(tall(30), "pgdown", " ")
+	assertMark(t, m, "name-29", "[x]")
+	m, _ = press(m, "pgup", " ")
+	assertMark(t, m, "many", "[x]")
+}
+
+func TestFootersMentionPaging(t *testing.T) {
+	list := model().View()
+	lines, _ := press(model(), "enter")
+	for name, view := range map[string]string{"list": list, "lines": lines.View()} {
+		if !strings.Contains(view, "PgUp/PgDn") {
+			t.Errorf("%s footer lacks the paging keys:\n%s", name, view)
 		}
 	}
 }
