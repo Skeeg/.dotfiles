@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -285,6 +286,34 @@ func TestLineViewScrollsToCursor(t *testing.T) {
 	assertMark(t, m, "cmd-20", "[ ]")
 	if strings.Contains(m.View(), "cmd-00") {
 		t.Errorf("top line still shown after scrolling down:\n%s", m.View())
+	}
+}
+
+// History can hold escape sequences and stray bytes. Printed raw, they
+// would drive the terminal instead of showing as text.
+func TestViewNeutralizesControlBytes(t *testing.T) {
+	cmds := []string{"vbox-start \x1b[2J\x07 \x7f", "vbox-start \xff"}
+	entries := make([]histfile.Entry, len(cmds))
+	for i, c := range cmds {
+		entries[i] = histfile.Entry{Raw: []byte(c + "\n"), Command: c}
+	}
+	m := tea.Model(New("h", entries, []audit.Group{{Name: "vbox-start", Entries: []int{0, 1}}}, backup))
+	lines, _ := press(m, "enter")
+	for name, view := range map[string]string{"list": m.View(), "lines": lines.View()} {
+		for _, r := range strings.ReplaceAll(view, "\n", "") {
+			if r < 0x20 || r == 0x7f || (r >= 0x80 && r < 0xa0) {
+				t.Errorf("%s view holds control rune %U", name, r)
+			}
+		}
+		if !utf8.ValidString(view) {
+			t.Errorf("%s view is not valid UTF-8: %q", name, view)
+		}
+	}
+	if !strings.Contains(lines.View(), `vbox-start ^[[2J^G ^?`) {
+		t.Errorf("control bytes not shown in caret notation:\n%q", lines.View())
+	}
+	if !strings.Contains(lines.View(), "vbox-start �") {
+		t.Errorf("invalid byte not shown as U+FFFD:\n%q", lines.View())
 	}
 }
 
