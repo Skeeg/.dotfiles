@@ -59,7 +59,7 @@ func (f *File) Rewrite(deleted []int, now time.Time) (backup string, err error) 
 		return "", nil
 	}
 
-	backup = f.Path + ".bak." + now.Format("20060102_150405")
+	backup = BackupPath(f.Path, now)
 	if err := writeExclusive(backup, f.data); err != nil {
 		return "", fmt.Errorf("backup failed, nothing written: %w", err)
 	}
@@ -112,6 +112,11 @@ func (f *File) Rewrite(deleted []int, now time.Time) (backup string, err error) 
 		return backup, err
 	}
 	return backup, nil
+}
+
+// BackupPath is where Rewrite at time now backs up the file at path.
+func BackupPath(path string, now time.Time) string {
+	return path + ".bak." + now.Format("20060102_150405")
 }
 
 // writeExclusive creates path with mode 0600, failing if it exists. A
