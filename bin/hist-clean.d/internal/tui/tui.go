@@ -31,6 +31,42 @@ type Model struct {
 	cursor     int // name row in the list
 	lineCursor int // line row in the line view of group cursor
 	confirmed  bool
+
+	height     int // terminal rows; 0 until Bubble Tea reports it
+	offset     int // first name row shown
+	lineOffset int // first line row shown
+}
+
+// chrome is the header and footer lines around the rows of a view.
+const chrome = 4
+
+// rows is how many of n rows fit on screen.
+func (m Model) rows(n int) int {
+	if m.height <= 0 {
+		return n
+	}
+	return max(1, m.height-chrome)
+}
+
+// follow moves offset just enough to keep cursor inside a window of size
+// rows.
+func follow(cursor, offset, rows int) int {
+	switch {
+	case cursor < offset:
+		return cursor
+	case cursor >= offset+rows:
+		return cursor - rows + 1
+	}
+	return offset
+}
+
+func (m Model) scrolled() Model {
+	m.offset = follow(m.cursor, m.offset, m.rows(len(m.groups)))
+	if m.screen == linesScreen {
+		n := len(m.groups[m.cursor].Entries)
+		m.lineOffset = follow(m.lineCursor, m.lineOffset, m.rows(n))
+	}
+	return m
 }
 
 // New builds the pick list for the invalid groups found in entries.
@@ -49,24 +85,30 @@ func New(title string, entries []histfile.Entry, groups []audit.Group, backup st
 func (m Model) Init() tea.Cmd { return nil }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	key, ok := msg.(tea.KeyMsg)
-	if !ok {
-		return m, nil
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.height = msg.Height
+		return m.scrolled(), nil
+	case tea.KeyMsg:
+		k := msg.String()
+		if k == "ctrl+c" {
+			return m, tea.Quit
+		}
+		var cmd tea.Cmd
+		switch m.screen {
+		case listScreen:
+			m, cmd = m.updateList(k)
+		case linesScreen:
+			m, cmd = m.updateLines(k)
+		default:
+			m, cmd = m.updateConfirm(k)
+		}
+		return m.scrolled(), cmd
 	}
-	k := key.String()
-	if k == "ctrl+c" {
-		return m, tea.Quit
-	}
-	switch m.screen {
-	case listScreen:
-		return m.updateList(k)
-	case linesScreen:
-		return m.updateLines(k)
-	}
-	return m.updateConfirm(k)
+	return m, nil
 }
 
-func (m Model) updateList(k string) (tea.Model, tea.Cmd) {
+func (m Model) updateList(k string) (Model, tea.Cmd) {
 	switch k {
 	case "up", "k":
 		m.cursor = max(m.cursor-1, 0)
@@ -76,7 +118,7 @@ func (m Model) updateList(k string) (tea.Model, tea.Cmd) {
 		m.sel.Toggle(m.cursor)
 	case "enter":
 		m.sel.Open(m.cursor)
-		m.lineCursor = 0
+		m.lineCursor, m.lineOffset = 0, 0
 		m.screen = linesScreen
 	case "d":
 		if n, _ := m.sel.Counts(); n > 0 {
@@ -88,7 +130,7 @@ func (m Model) updateList(k string) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) updateLines(k string) (tea.Model, tea.Cmd) {
+func (m Model) updateLines(k string) (Model, tea.Cmd) {
 	switch k {
 	case "up", "k":
 		m.lineCursor = max(m.lineCursor-1, 0)
@@ -104,7 +146,7 @@ func (m Model) updateLines(k string) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) updateConfirm(k string) (tea.Model, tea.Cmd) {
+func (m Model) updateConfirm(k string) (Model, tea.Cmd) {
 	if k == "y" {
 		m.confirmed = true
 		return m, tea.Quit
@@ -167,7 +209,9 @@ func (m Model) viewList() string {
 		width = max(width, len(g.Name))
 	}
 	fmt.Fprintf(&b, "hist-clean %s    %s, %s\n\n", m.title, plural(len(m.groups), "invalid name", "invalid names"), plural(total, "entry", "entries"))
-	for i, g := range m.groups {
+	end := min(m.offset+m.rows(len(m.groups)), len(m.groups))
+	for i := m.offset; i < end; i++ {
+		g := m.groups[i]
 		sample := firstLine(m.entries[g.Entries[0]].Command)
 		fmt.Fprintf(&b, "%s%s  %-*s  %5d   %s\n", pointer(i == m.cursor), marks[m.sel.Mark(i)], width, g.Name, len(g.Entries), sample)
 	}
@@ -179,7 +223,9 @@ func (m Model) viewLines() string {
 	var b strings.Builder
 	g := m.groups[m.cursor]
 	fmt.Fprintf(&b, "%s: %s\n\n", g.Name, plural(len(g.Entries), "entry", "entries"))
-	for l, e := range g.Entries {
+	end := min(m.lineOffset+m.rows(len(g.Entries)), len(g.Entries))
+	for l := m.lineOffset; l < end; l++ {
+		e := g.Entries[l]
 		fmt.Fprintf(&b, "%s%s  %s\n", pointer(l == m.lineCursor), tick(m.sel.Line(m.cursor, l)), firstLine(m.entries[e].Command))
 	}
 	b.WriteString("\nspace toggle line   esc back   q quit\n")
