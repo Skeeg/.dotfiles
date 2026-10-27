@@ -1,0 +1,14 @@
+#1729500000
+ls -la
+#1729500010
+vbox-start --headless win11
+#1729500020
+for f in a b; do
+  echo $f
+done
+#1729500030
+FOO=1 vbox-start
+#1729500040
+./run.sh
+#1729500050
+kubctl get pods -A
