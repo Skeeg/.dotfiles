@@ -79,6 +79,16 @@ func TestFindRejectsDirectoryOnPath(t *testing.T) {
 	assertGroups(t, got, []Group{{Name: "sub", Entries: []int{0}}})
 }
 
+// A shell reads an empty PATH entry as the current directory. hist-clean
+// runs from anywhere, so an executable that happens to sit in its working
+// directory must not make a history name look valid.
+func TestFindIgnoresEmptyPathEntry(t *testing.T) {
+	t.Chdir(pathDir(t, "here"))
+	path := string(os.PathListSeparator) + pathDir(t)
+	got := Find(entries("here"), set(), path)
+	assertGroups(t, got, []Group{{Name: "here", Entries: []int{0}}})
+}
+
 // Aliases, functions, builtins and keywords from the calling shell.
 func TestFindAcceptsKnownNames(t *testing.T) {
 	got := Find(entries("gs", "for x in a; do echo $x; done"), set("gs", "for"), pathDir(t))
