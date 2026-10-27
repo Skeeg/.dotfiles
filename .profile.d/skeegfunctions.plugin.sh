@@ -35,10 +35,6 @@ setenv() {
 
 alias env=peek-env
 alias printenv=peek-env
-alias status-vbox="sudo systemctl status vbox-dmz"
-alias restart-vbox="sudo systemctl restart vbox-dmz"
-alias start-vbox="sudo systemctl start vbox-dmz"
-alias stop-vbox="sudo systemctl stop vbox-dmz"
 
 lcd() {
   if [ $# -le 0 ]
