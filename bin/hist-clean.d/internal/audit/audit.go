@@ -1,7 +1,14 @@
 // Package audit finds history entries whose command does not resolve.
 package audit
 
-import "hist-clean/internal/histfile"
+import (
+	"os"
+	"path/filepath"
+	"sort"
+
+	"hist-clean/internal/cmdname"
+	"hist-clean/internal/histfile"
+)
 
 // Group is one invalid command name and the indices of its entries, in
 // file order.
@@ -14,5 +21,54 @@ type Group struct {
 // valid when it is in known or is an executable file in a directory of
 // path, a $PATH-style list.
 func Find(entries []histfile.Entry, known map[string]bool, path string) []Group {
-	return nil
+	dirs := filepath.SplitList(path)
+	valid := map[string]bool{}
+	byName := map[string]*Group{}
+	var groups []*Group
+
+	for i, e := range entries {
+		name, check := cmdname.Name(e.Command)
+		if !check {
+			continue
+		}
+		ok, seen := valid[name]
+		if !seen {
+			ok = known[name] || onPath(name, dirs)
+			valid[name] = ok
+		}
+		if ok {
+			continue
+		}
+		g := byName[name]
+		if g == nil {
+			g = &Group{Name: name}
+			byName[name] = g
+			groups = append(groups, g)
+		}
+		g.Entries = append(g.Entries, i)
+	}
+
+	sort.Slice(groups, func(a, b int) bool {
+		if len(groups[a].Entries) != len(groups[b].Entries) {
+			return len(groups[a].Entries) > len(groups[b].Entries)
+		}
+		return groups[a].Name < groups[b].Name
+	})
+	var out []Group
+	for _, g := range groups {
+		out = append(out, *g)
+	}
+	return out
+}
+
+// onPath reports whether name is an executable regular file in one of
+// dirs.
+func onPath(name string, dirs []string) bool {
+	for _, d := range dirs {
+		info, err := os.Stat(filepath.Join(d, name))
+		if err == nil && info.Mode().IsRegular() && info.Mode().Perm()&0o111 != 0 {
+			return true
+		}
+	}
+	return false
 }
