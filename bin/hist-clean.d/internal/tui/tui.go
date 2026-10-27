@@ -179,9 +179,30 @@ func pointer(on bool) string {
 func firstLine(command string) string {
 	line, rest, more := strings.Cut(command, "\n")
 	if more {
-		return fmt.Sprintf("%s  (+%d lines)", line, strings.Count(rest, "\n")+1)
+		return fmt.Sprintf("%s  (+%d lines)", printable(line), strings.Count(rest, "\n")+1)
 	}
-	return line
+	return printable(line)
+}
+
+// printable makes history text safe to print: control characters show in
+// caret notation (ESC is ^[, DEL is ^?) and invalid UTF-8 and C1 controls
+// show as U+FFFD, so nothing in history can drive the terminal.
+func printable(s string) string {
+	var b strings.Builder
+	for _, r := range strings.ToValidUTF8(s, "�") {
+		switch {
+		case r < 0x20:
+			b.WriteByte('^')
+			b.WriteRune(r + 0x40)
+		case r == 0x7f:
+			b.WriteString("^?")
+		case r >= 0x80 && r < 0xa0:
+			b.WriteRune('�')
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 func plural(n int, one, many string) string {
@@ -213,7 +234,7 @@ func (m Model) viewList() string {
 	for i := m.offset; i < end; i++ {
 		g := m.groups[i]
 		sample := firstLine(m.entries[g.Entries[0]].Command)
-		fmt.Fprintf(&b, "%s%s  %-*s  %5d   %s\n", pointer(i == m.cursor), marks[m.sel.Mark(i)], width, g.Name, len(g.Entries), sample)
+		fmt.Fprintf(&b, "%s%s  %-*s  %5d   %s\n", pointer(i == m.cursor), marks[m.sel.Mark(i)], width, printable(g.Name), len(g.Entries), sample)
 	}
 	b.WriteString("\nspace toggle   enter view lines   d delete selected   q quit\n")
 	return b.String()
