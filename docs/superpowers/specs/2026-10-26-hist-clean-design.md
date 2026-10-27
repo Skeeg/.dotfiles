@@ -48,7 +48,7 @@ The format is detected from file contents.
 | Format | Entry shape |
 |---|---|
 | zsh extended | `: <epoch>:<duration>;<command>`. A command line ending in `\` continues on the next line, and the entry spans all of them. |
-| bash with timestamps | `#<epoch>` line, then the command, which may span several lines up to the next `#<epoch>` line. |
+| bash with timestamps | `#<epoch>` line, then the command, which may span several lines up to the next `#<epoch>` line. Any `#<epoch>` line in the file selects this format, because a history kept from before `HISTTIMEFORMAT` was set starts with plain lines. Each of those plain lines is an entry of its own. |
 | bash plain | one line per entry. |
 
 Bytes are handled raw. zsh "metafies" non-ASCII bytes in its history file, and since kept entries are copied through byte for byte, the tool never needs to decode them.
@@ -58,7 +58,7 @@ Bytes are handled raw. zsh "metafies" non-ASCII bytes in its history file, and s
 Rules, applied to the entry's first line in order:
 
 1. Trim leading whitespace.
-2. Skip leading `NAME=value` words (`FOO=1 BAR=x vbox-start` gives `vbox-start`).
+2. Skip leading `NAME=value` words (`FOO=1 BAR=x vbox-start` gives `vbox-start`). Words split on whitespace outside quotes, backticks and `$( )`, so `TOKEN=$(op item get x) gti` gives `gti`. An unclosed quote or substitution runs to the end of the line, and the entry is then valid by rule.
 3. Skip wrapper commands and look at what they run: `sudo`, `time`, `env`, `nohup`, `command`, `exec`, `nice`, `builtin`. Flags after a wrapper are skipped too, and `env` may be followed by more `NAME=value` words.
 4. The next word is the command name.
 
@@ -103,6 +103,7 @@ Each name row shows the mark, the name, the entry count and a sample command lin
 - Space on a name row: `[ ]` or `[-]` goes to `[x]`, and `[x]` goes to `[ ]`.
 - Enter on a name row opens the line view: every entry for that name, one per row. When the name is `[ ]`, every line starts ticked. Otherwise the current line ticks are kept.
 - In the line view, space toggles one line, and esc returns to the name list.
+- In both views, left/right (or `h`/`l`) scroll the command text 8 columns, like `less -S`. The mark, name and count columns stay put, every row shifts together, and the scroll stops once the longest line's end reaches the right edge. Rows are cut at the terminal width. Changing view resets the scroll. Ryan asked for this on 2026-10-26.
 - The name mark follows its lines: all ticked is `[x]`, some ticked is `[-]`, none ticked is `[ ]`.
 - `d` opens a summary: entries to delete, names involved, backup path. `y` confirms. Any other key, including enter, cancels.
 - `q` quits with no changes.
