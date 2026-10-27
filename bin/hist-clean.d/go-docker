@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Runs the Go toolchain from the official image instead of a host install.
+#   ./go-docker test ./...
+#   ./go-docker build -o hist-clean .
+# Runs as the calling user so files it writes are not owned by root.
+# Build and module caches persist in ~/.cache/hist-clean-go.
+set -euo pipefail
+
+image=golang:1.26
+module=$(dirname "$(readlink -f "$0")")
+cache="${XDG_CACHE_HOME:-$HOME/.cache}/hist-clean-go"
+mkdir -p "$cache"
+
+exec docker run --rm \
+  -u "$(id -u):$(id -g)" \
+  -v "$module":/src -w /src \
+  -v "$cache":/go-cache \
+  -e GOCACHE=/go-cache/build -e GOPATH=/go-cache/gopath -e HOME=/tmp \
+  "$image" go "$@"

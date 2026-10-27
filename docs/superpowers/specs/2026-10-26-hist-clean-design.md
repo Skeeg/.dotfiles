@@ -130,7 +130,8 @@ TUI: Bubble Tea. The selection state is a plain Go type with no Bubble Tea depen
 - Synthetic fixtures in `testdata/`: one zsh extended file, one bash timestamped file, one bash plain file. No real history.
 - Unit tests for parsing (entry boundaries, multi-line entries, raw bytes), command-name extraction, validity, grouping and sort order, the selection state machine, backup and write.
 - The write tests check that a round trip with nothing deleted is byte-identical, and that the backup exists before the original changes.
-- Until mise is installed here, tests run in Docker: `docker run --rm -u "$(id -u):$(id -g)" -v "$PWD":/src -w /src -e GOCACHE=/tmp/gocache -e GOPATH=/tmp/gopath golang:<version> go test ./...`.
+- Go runs in Docker, not a host install (Ryan's call): `bin/hist-clean.d/go-docker test ./...` runs the toolchain from `golang:1.26` as the calling user.
+- Every red and green step gets its own commit, so the branch history shows how the code evolved (Ryan's call).
 
 ## Calls made by Claude, not by Ryan
 
