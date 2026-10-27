@@ -3,7 +3,9 @@
 #   ./go-docker test ./...
 #   ./go-docker build -o hist-clean .
 # Runs as the calling user so files it writes are not owned by root.
-# Build and module caches persist in ~/.cache/hist-clean-go.
+# Build and module caches persist in ~/.cache/hist-clean-go, mounted at
+# /go-cache. GOOS, GOARCH and CGO_ENABLED pass through when set, so a Mac
+# can cross-build a darwin binary from the Linux image.
 set -euo pipefail
 
 image=golang:1.26
@@ -16,4 +18,5 @@ exec docker run --rm \
   -v "$module":/src -w /src \
   -v "$cache":/go-cache \
   -e GOCACHE=/go-cache/build -e GOPATH=/go-cache/gopath -e HOME=/tmp \
+  -e GOOS -e GOARCH -e CGO_ENABLED \
   "$image" go "$@"
