@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,9 +22,11 @@ import (
 const usage = "usage: hist-clean [-known FILE] HISTFILE\n"
 
 type config struct {
-	args           []string
-	path           string // $PATH
-	now            time.Time
+	args []string
+	path string // $PATH
+	now  time.Time
+	// commonLimit hides names with this many entries or more. Zero shows all.
+	commonLimit    int
 	stdout, stderr io.Writer
 	// pick runs the pick list and returns the final model.
 	pick func(tea.Model) (tea.Model, error)
@@ -70,7 +73,15 @@ func run(c config) int {
 		fmt.Fprintf(c.stderr, "hist-clean: %v\n", err)
 		return 1
 	}
-	groups := audit.Find(f.Entries, known, c.path)
+	found := audit.Find(f.Entries, known, c.path)
+	groups := audit.DropCommon(found, c.commonLimit)
+	if hidden := len(found) - len(groups); hidden > 0 {
+		noun := "names"
+		if hidden == 1 {
+			noun = "name"
+		}
+		fmt.Fprintf(c.stdout, "%d %s hidden with %d or more entries each. Set HIST_CLEAN_COMMON=0 to show them.\n", hidden, noun, c.commonLimit)
+	}
 	if len(groups) == 0 {
 		fmt.Fprintf(c.stdout, "No invalid commands in %s.\n", hist)
 		return 0
@@ -101,6 +112,20 @@ func run(c config) int {
 	return 0
 }
 
+// defaultCommonLimit is how many entries a name needs to count as a real
+// tool rather than a typo.
+const defaultCommonLimit = 10
+
+// commonLimit parses HIST_CLEAN_COMMON. Unset or invalid gives the default,
+// and 0 turns the hiding off.
+func commonLimit(env string) int {
+	n, err := strconv.Atoi(env)
+	if err != nil || n < 0 {
+		return defaultCommonLimit
+	}
+	return n
+}
+
 func readNames(path string) (map[string]bool, error) {
 	fh, err := os.Open(path)
 	if err != nil {
@@ -119,11 +144,12 @@ func readNames(path string) (map[string]bool, error) {
 
 func main() {
 	os.Exit(run(config{
-		args:   os.Args[1:],
-		path:   os.Getenv("PATH"),
-		now:    time.Now(),
-		stdout: os.Stdout,
-		stderr: os.Stderr,
+		args:        os.Args[1:],
+		path:        os.Getenv("PATH"),
+		now:         time.Now(),
+		commonLimit: commonLimit(os.Getenv("HIST_CLEAN_COMMON")),
+		stdout:      os.Stdout,
+		stderr:      os.Stderr,
 		pick: func(m tea.Model) (tea.Model, error) {
 			return tea.NewProgram(m, tea.WithAltScreen()).Run()
 		},
