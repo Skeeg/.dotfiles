@@ -19,6 +19,14 @@ func TestName(t *testing.T) {
 		{"FOO= vbox-start", "vbox-start", true},
 		{"FOO=1", "", false},
 
+		// an assignment value is one word, quotes and substitutions included
+		{`FOO="a b" gti`, "gti", true},
+		{`FOO='a b' gti`, "gti", true},
+		{`TOKEN=$(op item get x --fields y) gti status`, "gti", true},
+		{`TOKEN=$(op item get "a b" --fields $(echo y)) gti`, "gti", true},
+		{"TOKEN=`op item get x` gti", "gti", true},
+		{`TOKEN=$(op item get x`, "", false},
+
 		// wrappers are looked through, with their flags
 		{"sudo gti status", "gti", true},
 		{"sudo -E kubctl get pods", "kubctl", true},
