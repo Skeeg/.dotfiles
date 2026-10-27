@@ -20,13 +20,24 @@ var wrappers = map[string]map[string]bool{
 	"builtin": {},
 }
 
-var assignment = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=`)
+// StrayTimestamp names entries that are only a bash "#<epoch>" line, which
+// lands in a zsh file when a bash history is appended to it. It is never a
+// real command, so the audit always reports it.
+const StrayTimestamp = "#<epoch>"
+
+var (
+	strayTimestamp = regexp.MustCompile(`^#[0-9]{9,}$`)
+	assignment     = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=`)
+)
 
 // Name returns the command name of a history entry and whether it needs
 // checking against PATH and the shell's known names. check is false when
 // the entry is valid by rule: a path, a word that can't be judged, or no
 // command at all.
 func Name(command string) (name string, check bool) {
+	if strayTimestamp.MatchString(strings.TrimSpace(command)) {
+		return StrayTimestamp, true
+	}
 	line, _, _ := strings.Cut(strings.ReplaceAll(command, "\\\n", " "), "\n")
 	words := split(strings.TrimLeft(line, " \t("))
 	words = slices.DeleteFunc(words, func(w string) bool { return w == `\` })

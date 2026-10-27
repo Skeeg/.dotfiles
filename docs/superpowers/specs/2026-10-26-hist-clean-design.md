@@ -157,7 +157,8 @@ TUI: Bubble Tea. The selection state is a plain Go type with no Bubble Tea depen
 
 - A backslash before a newline joins lines before the command word is read. Without this, `AWS_PROFILE=x \` made `\` the command name, about 135 entries in one 46k-line file.
 - A leading backslash (`\ls`) is stripped from the name.
-- A word starting with `#` is a comment and valid by rule. This covers stray bash `#<epoch>` lines inside a zsh file (50 in that file, likely a bash history appended once) and real comments.
+- An entry that is only `#<epoch>` is a bash timestamp that landed in a zsh file (50 in that file, likely a bash history appended once). It gets its own group, `#<epoch>`, which is always reported and never hidden by the common-name cutoff, so those lines can be deleted.
+- Any other word starting with `#` is a comment and valid by rule.
 - Names with `HIST_CLEAN_COMMON` entries or more (default 10, 0 shows all) are hidden and counted on stdout. Names such as `just`, `yarn` and `python` are real tools missing from this machine, and a typo rarely appears ten times. The audit cannot tell the two apart by lookup alone.
 
 ## Open risks, unchecked
