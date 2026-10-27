@@ -65,7 +65,7 @@ func TestParseZshEntries(t *testing.T) {
 		"for f in a b; do\\\n  echo $f\\\ndone",
 		"./run.sh --flag",
 		"/usr/bin/env true",
-		"echo caf\x83\xe3\x83\x89",
+		"echo café",
 		"kubctl get pods -A",
 		"sudo -u root gti status",
 		"vbox-start",
@@ -130,6 +130,22 @@ func TestParseMissingTrailingNewline(t *testing.T) {
 	if got := string(entries[1].Raw); got != ": 2:0;vbox-start" {
 		t.Errorf("last Raw: got %q", got)
 	}
+}
+
+// zsh writes each byte >= 0x83 as 0x83 then the byte XOR 0x20. A meta byte
+// with nothing after it is kept as is.
+func TestParseZshUnmetafiesCommand(t *testing.T) {
+	_, entries := Parse([]byte(": 1:0;echo caf\x83\xe3\x83\x89\n: 2:0;echo x\x83"))
+	assertCommands(t, entries, []string{"echo café", "echo x\x83"})
+	if got := string(entries[0].Raw); got != ": 1:0;echo caf\x83\xe3\x83\x89\n" {
+		t.Errorf("Raw changed: %q", got)
+	}
+}
+
+// Metafication is zsh-only; bash files hold bytes as typed.
+func TestParseBashKeepsBytes(t *testing.T) {
+	_, entries := Parse([]byte("echo caf\x83\xe3\n"))
+	assertCommands(t, entries, []string{"echo caf\x83\xe3"})
 }
 
 func TestParseEmpty(t *testing.T) {
