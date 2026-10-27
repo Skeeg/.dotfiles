@@ -93,3 +93,15 @@ func DropCommon(groups []Group, limit int) []Group {
 	}
 	return out
 }
+
+// DefinedNames returns the function names that entries define. Typing such
+// a name later is valid once the definition is in the same history.
+func DefinedNames(entries []histfile.Entry) map[string]bool {
+	names := map[string]bool{}
+	for _, e := range entries {
+		if name, ok := cmdname.Defines(e.Command); ok {
+			names[name] = true
+		}
+	}
+	return names
+}

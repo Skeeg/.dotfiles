@@ -163,3 +163,32 @@ func split(line string) []string {
 	}
 	return words
 }
+
+// Defines returns the function name a history entry defines, from
+// "name() {", "name () {", "function name {" and "function name() {". It
+// reports false for anything else, including a definition that follows an
+// assignment or wrapper, since that is not a plain definition.
+func Defines(command string) (name string, ok bool) {
+	line, _, _ := strings.Cut(continuation.ReplaceAllString(command, " "), "\n")
+	words := split(strings.TrimLeft(line, " \t"))
+	if len(words) == 0 {
+		return "", false
+	}
+	switch {
+	case words[0] == "function":
+		if len(words) < 2 {
+			return "", false
+		}
+		name, _, _ = strings.Cut(words[1], "(")
+	case functionDef.MatchString(words[0]):
+		name = strings.TrimSuffix(functionDef.FindString(words[0]), "()")
+	case len(words) > 1 && strings.HasPrefix(words[1], "()"):
+		name = words[0]
+	default:
+		return "", false
+	}
+	if name == "" || strings.ContainsAny(name, "/$`\"'{};|&<>=#") {
+		return "", false
+	}
+	return name, true
+}

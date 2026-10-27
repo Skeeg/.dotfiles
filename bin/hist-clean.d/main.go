@@ -26,7 +26,9 @@ type config struct {
 	path string // $PATH
 	now  time.Time
 	// commonLimit hides names with this many entries or more. Zero shows all.
-	commonLimit    int
+	commonLimit int
+	// selfDefined counts functions defined in the history file as valid.
+	selfDefined    bool
 	stdout, stderr io.Writer
 	// pick runs the pick list and returns the final model.
 	pick func(tea.Model) (tea.Model, error)
@@ -74,6 +76,20 @@ func run(c config) int {
 		return 1
 	}
 	found := audit.Find(f.Entries, known, c.path)
+	if c.selfDefined {
+		for name := range audit.DefinedNames(f.Entries) {
+			known[name] = true
+		}
+		withDefined := audit.Find(f.Entries, known, c.path)
+		if cleared := len(found) - len(withDefined); cleared > 0 {
+			noun, pronoun := "names", "them"
+			if cleared == 1 {
+				noun, pronoun = "name", "it"
+			}
+			fmt.Fprintf(c.stdout, "%d %s defined in the history file counted as valid. Set HIST_CLEAN_SELF_DEFINED=0 to list %s.\n", cleared, noun, pronoun)
+		}
+		found = withDefined
+	}
 	groups := audit.DropCommon(found, c.commonLimit)
 	if hidden := len(found) - len(groups); hidden > 0 {
 		noun := "names"
@@ -116,6 +132,16 @@ func run(c config) int {
 // tool rather than a typo.
 const defaultCommonLimit = 10
 
+// selfDefined parses HIST_CLEAN_SELF_DEFINED. It is on unless set to 0,
+// false, no or off.
+func selfDefined(env string) bool {
+	switch strings.ToLower(strings.TrimSpace(env)) {
+	case "0", "false", "no", "off":
+		return false
+	}
+	return true
+}
+
 // commonLimit parses HIST_CLEAN_COMMON. Unset or invalid gives the default,
 // and 0 turns the hiding off.
 func commonLimit(env string) int {
@@ -148,6 +174,7 @@ func main() {
 		path:        os.Getenv("PATH"),
 		now:         time.Now(),
 		commonLimit: commonLimit(os.Getenv("HIST_CLEAN_COMMON")),
+		selfDefined: selfDefined(os.Getenv("HIST_CLEAN_SELF_DEFINED")),
 		stdout:      os.Stdout,
 		stderr:      os.Stderr,
 		pick: func(m tea.Model) (tea.Model, error) {
