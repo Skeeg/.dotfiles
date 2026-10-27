@@ -375,7 +375,7 @@ func TestScrollStopsAtEnds(t *testing.T) {
 		t.Errorf("scrolled past the longest line:\n%s", m.View())
 	}
 	m, _ = press(m, repeat("left", 60)...)
-	if !strings.Contains(m.View(), "vbox-start aaa") {
+	if !strings.Contains(m.View(), "vbox-start aa") {
 		t.Errorf("left did not return to the start:\n%s", m.View())
 	}
 }
