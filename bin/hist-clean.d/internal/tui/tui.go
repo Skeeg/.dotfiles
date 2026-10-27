@@ -192,6 +192,10 @@ func (m Model) updateList(k string) (Model, tea.Cmd) {
 		m.cursor = max(m.cursor-1, 0)
 	case "down", "j":
 		m.cursor = min(m.cursor+1, len(m.groups)-1)
+	case "home":
+		m.cursor = 0
+	case "end":
+		m.cursor = len(m.groups) - 1
 	case "pgup":
 		m.cursor = max(m.cursor-m.rows(len(m.groups)), 0)
 	case "pgdown":
@@ -219,6 +223,10 @@ func (m Model) updateLines(k string) (Model, tea.Cmd) {
 		m.lineCursor = max(m.lineCursor-1, 0)
 	case "down", "j":
 		m.lineCursor = min(m.lineCursor+1, len(m.groups[m.cursor].Entries)-1)
+	case "home":
+		m.lineCursor = 0
+	case "end":
+		m.lineCursor = len(m.groups[m.cursor].Entries) - 1
 	case "pgup":
 		m.lineCursor = max(m.lineCursor-m.pageRows(), 0)
 	case "pgdown":
@@ -409,7 +417,7 @@ func (m Model) viewList() string {
 		sample := firstLine(m.entries[m.groups[i].Entries[0]].Command)
 		fmt.Fprintf(&b, "%s%s\n", m.listPrefix(i, width), m.shifted(sample))
 	}
-	b.WriteString("\nspace toggle   enter view lines   ←→ scroll   d delete selected   q quit   PgUp/PgDn page\n")
+	b.WriteString("\nspace toggle   enter view lines   ←→ scroll   d delete selected   q quit   PgUp/PgDn page   Home/End first/last\n")
 	return b.String()
 }
 
@@ -431,7 +439,7 @@ rows:
 			used++
 		}
 	}
-	b.WriteString("\nspace toggle line   esc back   x expand/collapse   X all   ←→ scroll   q quit   PgUp/PgDn page\n")
+	b.WriteString("\nspace toggle line   esc back   x expand/collapse   X all   ←→ scroll   q quit   PgUp/PgDn page   Home/End first/last\n")
 	return b.String()
 }
 
