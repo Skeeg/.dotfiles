@@ -77,6 +77,12 @@ func TestName(t *testing.T) {
 		{"\\", "", false},
 		{"FOO=1 \\", "", false},
 
+		// zsh stores a typed backslash-newline as two backslashes and a newline
+		{"PINGFED_BASEURL=x \\\\\nPINGFED_USERNAME=$(op item get a \"b\" --fields label=\"Username\") \\\\\nPINGFED_PASSWORD=$(op item get a) \\\\\n  python run.py \\\\\n    --input in.json", "python", true},
+		{"AWS_PROFILE=staging \\\\\naws sts get-caller-identity", "aws", true},
+		{"sudo \\\\\n  gti", "gti", true},
+		{"FOO=1 \\\\\n", "", false},
+
 		// a leading backslash skips aliases and is not part of the name
 		{"\\ls -la", "ls", true},
 		{"sudo \\ls", "ls", true},
