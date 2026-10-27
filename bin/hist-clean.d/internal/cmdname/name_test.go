@@ -81,8 +81,13 @@ func TestName(t *testing.T) {
 		{"\\ls -la", "ls", true},
 		{"sudo \\ls", "ls", true},
 
-		// comments are not commands, stray bash timestamps included
-		{"#1716322788", "", false},
+		// a bare bash timestamp is a stray, grouped under its own name
+		{"#1716322788", StrayTimestamp, true},
+		{"  #1716322788", StrayTimestamp, true},
+		{"#12345", "", false},
+		{"#1716322788 note", "", false},
+
+		// comments are not commands
 		{"# Function: install-teleport", "", false},
 		{"#", "", false},
 		{"FOO=1 # note", "", false},

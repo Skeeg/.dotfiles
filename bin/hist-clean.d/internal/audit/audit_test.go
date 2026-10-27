@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	"hist-clean/internal/cmdname"
 	"hist-clean/internal/histfile"
 )
 
@@ -149,4 +150,17 @@ func TestDropCommonReturnsNilWhenNothingIsLeft(t *testing.T) {
 	if got := DropCommon(groups, 3); got != nil {
 		t.Errorf("got %+v, want nil", got)
 	}
+}
+
+func TestFindGroupsStrayTimestamps(t *testing.T) {
+	got := Find(entries("#1716322788", "ls", "#1716322793"), set("ls"), pathDir(t))
+	assertGroups(t, got, []Group{{Name: cmdname.StrayTimestamp, Entries: []int{0, 2}}})
+}
+
+func TestDropCommonKeepsStrayTimestamps(t *testing.T) {
+	groups := []Group{
+		{Name: cmdname.StrayTimestamp, Entries: []int{0, 1, 2}},
+		{Name: "just", Entries: []int{3, 4, 5}},
+	}
+	assertGroups(t, DropCommon(groups, 3), groups[:1])
 }
