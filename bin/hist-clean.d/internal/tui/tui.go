@@ -38,7 +38,7 @@ type Model struct {
 	offset     int          // first name row shown
 	lineOffset int          // first line row shown
 	shift      int          // first column of command text shown, shared by all rows
-	expanded   map[int]bool // line rows of group cursor shown in full
+	collapsed  map[int]bool // line rows of group cursor folded to one line; none by default
 }
 
 // step is how many columns one left or right press scrolls.
@@ -77,7 +77,7 @@ func (m Model) scrolled() Model {
 
 // lineHeight is how many screen lines row l of the line view takes.
 func (m Model) lineHeight(l int) int {
-	if !m.expanded[l] {
+	if m.collapsed[l] {
 		return 1
 	}
 	return 1 + strings.Count(m.entries[m.groups[m.cursor].Entries[l]].Command, "\n")
@@ -107,7 +107,7 @@ func (m Model) followLine() int {
 // lineTexts is the command text of row l, one string per screen line.
 func (m Model) lineTexts(l int) []string {
 	command := m.entries[m.groups[m.cursor].Entries[l]].Command
-	if !m.expanded[l] {
+	if m.collapsed[l] {
 		return []string{firstLine(command)}
 	}
 	lines := strings.Split(command, "\n")
@@ -177,7 +177,7 @@ func (m Model) updateList(k string) (Model, tea.Cmd) {
 	case "enter":
 		m.sel.Open(m.cursor)
 		m.lineCursor, m.lineOffset, m.shift = 0, 0, 0
-		m.expanded = nil
+		m.collapsed = nil
 		m.screen = linesScreen
 	case "d":
 		if n, _ := m.sel.Counts(); n > 0 {
@@ -198,14 +198,28 @@ func (m Model) updateLines(k string) (Model, tea.Cmd) {
 	case " ":
 		m.sel.ToggleLine(m.cursor, m.lineCursor)
 	case "x":
-		next := make(map[int]bool, len(m.expanded)+1)
-		for l, on := range m.expanded {
-			next[l] = on
+		next := make(map[int]bool, len(m.collapsed)+1)
+		for l := range m.collapsed {
+			next[l] = true
 		}
-		next[m.lineCursor] = !next[m.lineCursor]
-		m.expanded = next
+		if next[m.lineCursor] {
+			delete(next, m.lineCursor)
+		} else {
+			next[m.lineCursor] = true
+		}
+		m.collapsed = next
+	case "X":
+		// Fold every row when all are open, otherwise open them all.
+		open := len(m.collapsed) == 0
+		m.collapsed = nil
+		if open {
+			m.collapsed = make(map[int]bool, len(m.groups[m.cursor].Entries))
+			for l := range m.groups[m.cursor].Entries {
+				m.collapsed[l] = true
+			}
+		}
 	case "esc":
-		m.screen, m.shift, m.expanded = listScreen, 0, nil
+		m.screen, m.shift, m.collapsed = listScreen, 0, nil
 	case "q":
 		return m, tea.Quit
 	}
@@ -389,7 +403,7 @@ rows:
 			used++
 		}
 	}
-	b.WriteString("\nspace toggle line   x expand   esc back   ←→ scroll   q quit\n")
+	b.WriteString("\nspace toggle line   esc back   x expand/collapse   X all   ←→ scroll   q quit\n")
 	return b.String()
 }
 
