@@ -28,6 +28,9 @@ const StrayTimestamp = "#<epoch>"
 var (
 	strayTimestamp = regexp.MustCompile(`^#[0-9]{9,}$`)
 	assignment     = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=`)
+	// zsh stores a typed backslash-newline as two backslashes and a newline,
+	// and a bare newline as one, so any run of them ends a line.
+	continuation = regexp.MustCompile(`\\+\n`)
 )
 
 // Name returns the command name of a history entry and whether it needs
@@ -38,7 +41,7 @@ func Name(command string) (name string, check bool) {
 	if strayTimestamp.MatchString(strings.TrimSpace(command)) {
 		return StrayTimestamp, true
 	}
-	line, _, _ := strings.Cut(strings.ReplaceAll(command, "\\\n", " "), "\n")
+	line, _, _ := strings.Cut(continuation.ReplaceAllString(command, " "), "\n")
 	words := split(strings.TrimLeft(line, " \t("))
 	words = slices.DeleteFunc(words, func(w string) bool { return w == `\` })
 
