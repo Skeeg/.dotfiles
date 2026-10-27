@@ -75,6 +75,26 @@ func (m Model) scrolled() Model {
 	return m
 }
 
+// pageRows is how many line rows one page moves: the rows that fit on screen
+// from lineOffset, counting screen lines so expanded rows take their height.
+// With no known terminal height a page is the whole group.
+func (m Model) pageRows() int {
+	n := len(m.groups[m.cursor].Entries)
+	if m.height <= 0 {
+		return n
+	}
+	budget, used, rows := m.rows(0), 0, 0
+	for l := m.lineOffset; l < n; l++ {
+		h := m.lineHeight(l)
+		if used+h > budget {
+			break
+		}
+		used += h
+		rows++
+	}
+	return max(rows, 1)
+}
+
 // lineHeight is how many screen lines row l of the line view takes.
 func (m Model) lineHeight(l int) int {
 	if m.collapsed[l] {
@@ -172,6 +192,10 @@ func (m Model) updateList(k string) (Model, tea.Cmd) {
 		m.cursor = max(m.cursor-1, 0)
 	case "down", "j":
 		m.cursor = min(m.cursor+1, len(m.groups)-1)
+	case "pgup":
+		m.cursor = max(m.cursor-m.rows(len(m.groups)), 0)
+	case "pgdown":
+		m.cursor = min(m.cursor+m.rows(len(m.groups)), len(m.groups)-1)
 	case " ":
 		m.sel.Toggle(m.cursor)
 	case "enter":
@@ -195,6 +219,10 @@ func (m Model) updateLines(k string) (Model, tea.Cmd) {
 		m.lineCursor = max(m.lineCursor-1, 0)
 	case "down", "j":
 		m.lineCursor = min(m.lineCursor+1, len(m.groups[m.cursor].Entries)-1)
+	case "pgup":
+		m.lineCursor = max(m.lineCursor-m.pageRows(), 0)
+	case "pgdown":
+		m.lineCursor = min(m.lineCursor+m.pageRows(), len(m.groups[m.cursor].Entries)-1)
 	case " ":
 		m.sel.ToggleLine(m.cursor, m.lineCursor)
 	case "x":
@@ -381,7 +409,7 @@ func (m Model) viewList() string {
 		sample := firstLine(m.entries[m.groups[i].Entries[0]].Command)
 		fmt.Fprintf(&b, "%s%s\n", m.listPrefix(i, width), m.shifted(sample))
 	}
-	b.WriteString("\nspace toggle   enter view lines   ←→ scroll   d delete selected   q quit\n")
+	b.WriteString("\nspace toggle   enter view lines   ←→ scroll   d delete selected   q quit   PgUp/PgDn page\n")
 	return b.String()
 }
 
@@ -403,7 +431,7 @@ rows:
 			used++
 		}
 	}
-	b.WriteString("\nspace toggle line   esc back   x expand/collapse   X all   ←→ scroll   q quit\n")
+	b.WriteString("\nspace toggle line   esc back   x expand/collapse   X all   ←→ scroll   q quit   PgUp/PgDn page\n")
 	return b.String()
 }
 
