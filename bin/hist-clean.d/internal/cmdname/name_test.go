@@ -127,3 +127,41 @@ func TestName(t *testing.T) {
 		})
 	}
 }
+
+func TestDefines(t *testing.T) {
+	tests := []struct {
+		command  string
+		wantName string
+		wantOK   bool
+	}{
+		{"f() {", "f", true},
+		{"f () {", "f", true},
+		{"f(){ echo x; }", "f", true},
+		{"  f() {", "f", true},
+		{"f()\n{\n  echo x\n}", "f", true},
+		{"generate_api_keys_1password() {\n  local a=\"$1\"\n}", "generate_api_keys_1password", true},
+		{"git-clean-merged() {\\\\\n  git branch\\\\\n}", "git-clean-merged", true},
+		{"function f {", "f", true},
+		{"function f() {", "f", true},
+		{"function f () {", "f", true},
+		{"function f", "f", true},
+
+		// not definitions
+		{"function", "", false},
+		{"function $x {", "", false},
+		{"ls -la", "", false},
+		{"echo f()", "", false},
+		{"FOO=1 f() {", "", false},
+		{"./run() {", "", false},
+		{"", "", false},
+		{"#1716322788", "", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.command, func(t *testing.T) {
+			name, ok := Defines(tt.command)
+			if name != tt.wantName || ok != tt.wantOK {
+				t.Errorf("Defines(%q) = (%q, %v), want (%q, %v)", tt.command, name, ok, tt.wantName, tt.wantOK)
+			}
+		})
+	}
+}

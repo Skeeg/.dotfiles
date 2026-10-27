@@ -177,3 +177,19 @@ func TestDropCommonKeepsPasteMarkers(t *testing.T) {
 	}
 	assertGroups(t, DropCommon(groups, 3), groups[:1])
 }
+
+func TestDefinedNamesCollectsFunctionsFromEntries(t *testing.T) {
+	got := DefinedNames(entries("a() {\n  echo\n}", "function b {", "ls", "a() { echo again; }"))
+	if want := set("a", "b"); !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestDefinedNamesAreValidAsKnown(t *testing.T) {
+	es := entries("gen_key() { echo k; }", "gen_key", "gen_keys", "gen_key --all")
+	assertGroups(t, Find(es, set(), pathDir(t)), []Group{
+		{Name: "gen_key", Entries: []int{1, 3}},
+		{Name: "gen_keys", Entries: []int{2}},
+	})
+	assertGroups(t, Find(es, DefinedNames(es), pathDir(t)), []Group{{Name: "gen_keys", Entries: []int{2}}})
+}

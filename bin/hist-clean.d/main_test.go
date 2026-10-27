@@ -220,3 +220,40 @@ func TestCommonNamesAreHiddenAndReported(t *testing.T) {
 		t.Errorf("stdout %q does not report the hidden name and the variable", out.String())
 	}
 }
+
+func TestSelfDefinedFromEnv(t *testing.T) {
+	tests := map[string]bool{"": true, "1": true, "yes": true, "junk": true, "0": false, "false": false, "off": false, "no": false}
+	for env, want := range tests {
+		if got := selfDefined(env); got != want {
+			t.Errorf("selfDefined(%q) = %v, want %v", env, got, want)
+		}
+	}
+}
+
+const selfDefinedSample = ": 1:0;gen_key() { echo k; }\n: 2:0;gen_key\n: 3:0;gen_keys\n"
+
+func TestFunctionsDefinedInHistoryCountAsValid(t *testing.T) {
+	_, hist, pathDir := setup(t, "zsh_history", selfDefinedSample)
+	var out, errOut bytes.Buffer
+	code := run(config{args: []string{hist}, path: pathDir, now: at, selfDefined: true, stdout: &out, stderr: &errOut, pick: keys("q")})
+	if code != 0 {
+		t.Fatalf("code %d, stderr %q", code, errOut.String())
+	}
+	if !strings.Contains(out.String(), "1 name defined in the history file") || !strings.Contains(out.String(), "HIST_CLEAN_SELF_DEFINED") {
+		t.Errorf("stdout %q does not report the cleared name and the variable", out.String())
+	}
+}
+
+func TestSelfDefinedOffListsDefinedNames(t *testing.T) {
+	_, hist, pathDir := setup(t, "zsh_history", selfDefinedSample)
+	var out, errOut bytes.Buffer
+	var shown string
+	pick := func(m tea.Model) (tea.Model, error) { shown = m.View(); return m, nil }
+	code := run(config{args: []string{hist}, path: pathDir, now: at, selfDefined: false, stdout: &out, stderr: &errOut, pick: pick})
+	if code != 0 {
+		t.Fatalf("code %d, stderr %q", code, errOut.String())
+	}
+	if !strings.Contains(shown, "gen_key ") || strings.Contains(out.String(), "defined in the history file") {
+		t.Errorf("want gen_key listed and no note.\nview:\n%s\nstdout: %q", shown, out.String())
+	}
+}
