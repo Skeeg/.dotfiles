@@ -44,6 +44,7 @@ func TestDetectFormat(t *testing.T) {
 		{"zsh_history", FormatZsh},
 		{"bash_history_timestamped", FormatBashTimestamped},
 		{"bash_history_plain", FormatBashPlain},
+		{"bash_history_mixed", FormatBashTimestamped},
 	}
 	for _, tt := range tests {
 		t.Run(tt.fixture, func(t *testing.T) {
@@ -80,6 +81,19 @@ func TestParseBashTimestampedEntries(t *testing.T) {
 		"for f in a b; do\n  echo $f\ndone",
 		"FOO=1 vbox-start",
 		"./run.sh",
+		"kubctl get pods -A",
+	})
+}
+
+// A bash history kept from before HISTTIMEFORMAT was set starts with plain
+// lines. The timestamp lines after them still belong to the next command.
+func TestParseBashMixedEntries(t *testing.T) {
+	_, entries := Parse(readFixture(t, "bash_history_mixed"))
+	assertCommands(t, entries, []string{
+		"cat ~/bin/start-claude",
+		"gti status",
+		"ls -la",
+		"for f in a b; do\n  echo $f\ndone",
 		"kubctl get pods -A",
 	})
 }
