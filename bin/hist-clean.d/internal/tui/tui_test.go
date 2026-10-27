@@ -42,6 +42,10 @@ func keyMsg(k string) tea.KeyMsg {
 		return tea.KeyMsg{Type: tea.KeyUp}
 	case "down":
 		return tea.KeyMsg{Type: tea.KeyDown}
+	case "left":
+		return tea.KeyMsg{Type: tea.KeyLeft}
+	case "right":
+		return tea.KeyMsg{Type: tea.KeyRight}
 	case "ctrl+c":
 		return tea.KeyMsg{Type: tea.KeyCtrlC}
 	}
@@ -314,6 +318,83 @@ func TestViewNeutralizesControlBytes(t *testing.T) {
 	}
 	if !strings.Contains(lines.View(), "vbox-start �") {
 		t.Errorf("invalid byte not shown as U+FFFD:\n%q", lines.View())
+	}
+}
+
+// wide builds one name whose two entries run past a 40-column terminal,
+// ending in TAIL-A and TAIL-B.
+func wide() tea.Model {
+	cmds := []string{
+		"vbox-start " + strings.Repeat("a", 60) + " TAIL-A",
+		"vbox-start " + strings.Repeat("b", 30) + " TAIL-B",
+	}
+	entries := make([]histfile.Entry, len(cmds))
+	for i, c := range cmds {
+		entries[i] = histfile.Entry{Raw: []byte(c + "\n"), Command: c}
+	}
+	m := tea.Model(New("h", entries, []audit.Group{{Name: "vbox-start", Entries: []int{0, 1}}}, backup))
+	m, _ = m.Update(tea.WindowSizeMsg{Width: 40, Height: 20})
+	return m
+}
+
+func assertFitsWidth(t *testing.T, m tea.Model, width int) {
+	t.Helper()
+	for _, line := range strings.Split(m.View(), "\n") {
+		if n := utf8.RuneCountInString(line); n > width {
+			t.Errorf("line is %d columns, terminal is %d: %q", n, width, line)
+		}
+	}
+}
+
+func TestRowsClipToWidth(t *testing.T) {
+	m := wide()
+	assertFitsWidth(t, m, 40)
+	if strings.Contains(m.View(), "TAIL-A") {
+		t.Errorf("long line not clipped:\n%s", m.View())
+	}
+	lines, _ := press(m, "enter")
+	assertFitsWidth(t, lines, 40)
+}
+
+func TestRightScrollsCommandText(t *testing.T) {
+	for _, keys := range [][]string{{"right"}, {"l"}} {
+		t.Run(keys[0], func(t *testing.T) {
+			m, _ := press(wide(), repeat(keys[0], 10)...)
+			assertFitsWidth(t, m, 40)
+			if !strings.Contains(m.View(), "TAIL-A") {
+				t.Errorf("tail not shown after scrolling right:\n%s", m.View())
+			}
+			assertMark(t, m, "vbox-start", "[ ]")
+		})
+	}
+}
+
+func TestScrollStopsAtEnds(t *testing.T) {
+	m, _ := press(wide(), repeat("right", 50)...)
+	if !strings.Contains(m.View(), "TAIL-A") {
+		t.Errorf("scrolled past the longest line:\n%s", m.View())
+	}
+	m, _ = press(m, repeat("left", 60)...)
+	if !strings.Contains(m.View(), "vbox-start aaa") {
+		t.Errorf("left did not return to the start:\n%s", m.View())
+	}
+}
+
+func TestLineViewScrolls(t *testing.T) {
+	m, _ := press(wide(), "enter")
+	m, _ = press(m, repeat("right", 10)...)
+	assertFitsWidth(t, m, 40)
+	if !strings.Contains(m.View(), "TAIL-A") {
+		t.Errorf("tail not shown after scrolling right:\n%s", m.View())
+	}
+	for _, k := range []string{"left", "h"} {
+		if m, _ = press(m, k); !strings.Contains(m.View(), "esc back") {
+			t.Errorf("%s left the line view:\n%s", k, m.View())
+		}
+	}
+	m, _ = press(m, "esc")
+	if strings.Contains(m.View(), "esc back") {
+		t.Errorf("esc did not return to the list:\n%s", m.View())
 	}
 }
 
