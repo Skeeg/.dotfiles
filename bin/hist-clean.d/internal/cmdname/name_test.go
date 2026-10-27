@@ -68,6 +68,25 @@ func TestName(t *testing.T) {
 		{"gti>out.txt", "gti", true},
 		{"(cd /tmp && make)", "cd", true},
 
+		// a backslash before a newline continues the line
+		{"AWS_PROFILE=staging \\\naws sts get-caller-identity", "aws", true},
+		{"FOO=1 \\\n  BAR=2 \\\n  gti status", "gti", true},
+		{"sudo \\\n  gti", "gti", true},
+		{"\\\ngti status", "gti", true},
+		{"FOO=1 \\\n", "", false},
+		{"\\", "", false},
+		{"FOO=1 \\", "", false},
+
+		// a leading backslash skips aliases and is not part of the name
+		{"\\ls -la", "ls", true},
+		{"sudo \\ls", "ls", true},
+
+		// comments are not commands, stray bash timestamps included
+		{"#1716322788", "", false},
+		{"# Function: install-teleport", "", false},
+		{"#", "", false},
+		{"FOO=1 # note", "", false},
+
 		// only the first line of a multi-line entry counts
 		{"for f in a b; do\\\n  echo $f\\\ndone", "for", true},
 		{"vbox-start\nls", "vbox-start", true},

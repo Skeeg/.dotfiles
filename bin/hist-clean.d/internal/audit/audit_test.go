@@ -127,3 +127,26 @@ func TestFindZshFixture(t *testing.T) {
 		{Name: "kubctl", Entries: []int{8}},
 	})
 }
+
+func TestDropCommonRemovesGroupsAtOrAboveLimit(t *testing.T) {
+	groups := []Group{
+		{Name: "just", Entries: []int{0, 1, 2}},
+		{Name: "yarn", Entries: []int{3, 4}},
+		{Name: "gti", Entries: []int{5}},
+	}
+	assertGroups(t, DropCommon(groups, 3), groups[1:])
+	assertGroups(t, DropCommon(groups, 2), groups[2:])
+}
+
+func TestDropCommonZeroOrNegativeKeepsEverything(t *testing.T) {
+	groups := []Group{{Name: "just", Entries: []int{0, 1, 2}}}
+	assertGroups(t, DropCommon(groups, 0), groups)
+	assertGroups(t, DropCommon(groups, -1), groups)
+}
+
+func TestDropCommonReturnsNilWhenNothingIsLeft(t *testing.T) {
+	groups := []Group{{Name: "just", Entries: []int{0, 1, 2}}}
+	if got := DropCommon(groups, 3); got != nil {
+		t.Errorf("got %+v, want nil", got)
+	}
+}
