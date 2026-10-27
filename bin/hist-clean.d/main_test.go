@@ -190,3 +190,33 @@ func TestRunQuitWithoutConfirmChangesNothing(t *testing.T) {
 	}
 	assertNoBackup(t, hist)
 }
+
+func TestCommonLimitFromEnv(t *testing.T) {
+	tests := []struct {
+		env  string
+		want int
+	}{
+		{"", 10},
+		{"25", 25},
+		{"0", 0},
+		{"-3", 10},
+		{"many", 10},
+	}
+	for _, tt := range tests {
+		if got := commonLimit(tt.env); got != tt.want {
+			t.Errorf("commonLimit(%q) = %d, want %d", tt.env, got, tt.want)
+		}
+	}
+}
+
+func TestCommonNamesAreHiddenAndReported(t *testing.T) {
+	_, hist, pathDir := setup(t, "zsh_history", ": 1:0;vbox-start\n: 2:0;vbox-start a\n: 3:0;ls\n")
+	var out, errOut bytes.Buffer
+	code := run(config{args: []string{hist}, path: pathDir, now: at, commonLimit: 2, stdout: &out, stderr: &errOut, pick: notCalled(t)})
+	if code != 0 {
+		t.Fatalf("code %d, stderr %q", code, errOut.String())
+	}
+	if !strings.Contains(out.String(), "1 name hidden") || !strings.Contains(out.String(), "HIST_CLEAN_COMMON") {
+		t.Errorf("stdout %q does not report the hidden name and the variable", out.String())
+	}
+}
