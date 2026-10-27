@@ -5,6 +5,7 @@ package histfile
 import (
 	"bytes"
 	"regexp"
+	"strings"
 )
 
 type Format int
@@ -97,9 +98,31 @@ func parseZsh(lines [][]byte) []Entry {
 			i++
 		}
 		skip := len(zshPrefix.Find(lines[start]))
-		entries = append(entries, entryFrom(lines[start:i], skip))
+		e := entryFrom(lines[start:i], skip)
+		e.Command = unmetafy(e.Command)
+		entries = append(entries, e)
 	}
 	return entries
+}
+
+// zshMeta marks a metafied byte in a zsh history file: the next byte is
+// the real one XOR 0x20.
+const zshMeta = 0x83
+
+func unmetafy(s string) string {
+	if strings.IndexByte(s, zshMeta) < 0 {
+		return s
+	}
+	b := make([]byte, 0, len(s))
+	for i := 0; i < len(s); i++ {
+		if s[i] == zshMeta && i+1 < len(s) {
+			i++
+			b = append(b, s[i]^0x20)
+			continue
+		}
+		b = append(b, s[i])
+	}
+	return string(b)
 }
 
 // parseBashTimestamped starts an entry at each "#<epoch>" line and runs
