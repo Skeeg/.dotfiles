@@ -46,6 +46,10 @@ func keyMsg(k string) tea.KeyMsg {
 		return tea.KeyMsg{Type: tea.KeyLeft}
 	case "right":
 		return tea.KeyMsg{Type: tea.KeyRight}
+	case "home":
+		return tea.KeyMsg{Type: tea.KeyHome}
+	case "end":
+		return tea.KeyMsg{Type: tea.KeyEnd}
 	case "pgup":
 		return tea.KeyMsg{Type: tea.KeyPgUp}
 	case "pgdown":
@@ -648,6 +652,68 @@ func TestFootersMentionPaging(t *testing.T) {
 	for name, view := range map[string]string{"list": list, "lines": lines.View()} {
 		if !strings.Contains(view, "PgUp/PgDn") {
 			t.Errorf("%s footer lacks the paging keys:\n%s", name, view)
+		}
+	}
+}
+
+func TestHomeAndEndJumpToEndsOfList(t *testing.T) {
+	m := resize(tall(30), 12)
+	m, _ = press(m, "end", " ")
+	assertFits(t, m, 12)
+	assertMark(t, m, "name-29", "[x]")
+	m, _ = press(m, "home", " ")
+	assertFits(t, m, 12)
+	assertMark(t, m, "many", "[x]")
+	if !strings.Contains(m.View(), "many") || strings.Contains(m.View(), "name-29") {
+		t.Errorf("window did not scroll back to the top:\n%s", m.View())
+	}
+}
+
+func TestHomeAndEndJumpToEndsOfLineView(t *testing.T) {
+	m := resize(tall(30), 12)
+	m, _ = press(m, "enter", "end", " ")
+	assertFits(t, m, 12)
+	assertMark(t, m, "cmd-29", "[ ]")
+	m, _ = press(m, "home", " ")
+	assertFits(t, m, 12)
+	assertMark(t, m, "cmd-00", "[ ]")
+}
+
+func TestHomeAndEndWithExpandedRows(t *testing.T) {
+	m := resize(multi(), 9)
+	m, _ = press(m, "enter", "end")
+	assertFits(t, m, 9)
+	if !strings.Contains(m.View(), "third-cmd") {
+		t.Errorf("last row not shown after End:\n%s", m.View())
+	}
+	m, _ = press(m, "home")
+	assertFits(t, m, 9)
+	if !strings.Contains(m.View(), "echo one") {
+		t.Errorf("first row not shown after Home:\n%s", m.View())
+	}
+}
+
+func TestHomeAndEndWithoutKnownHeight(t *testing.T) {
+	m, _ := press(tall(30), "end", " ")
+	assertMark(t, m, "name-29", "[x]")
+	m, _ = press(m, "home", " ")
+	assertMark(t, m, "many", "[x]")
+}
+
+func TestHomeAndEndKeepHorizontalScroll(t *testing.T) {
+	m, _ := press(wide(), repeat("right", 10)...)
+	m, _ = press(m, "end", "home")
+	if !strings.Contains(m.View(), "TAIL-A") {
+		t.Errorf("Home/End reset the sideways scroll:\n%s", m.View())
+	}
+}
+
+func TestFootersMentionHomeAndEnd(t *testing.T) {
+	list := model().View()
+	lines, _ := press(model(), "enter")
+	for name, view := range map[string]string{"list": list, "lines": lines.View()} {
+		if !strings.Contains(view, "Home/End") {
+			t.Errorf("%s footer lacks the Home/End keys:\n%s", name, view)
 		}
 	}
 }
