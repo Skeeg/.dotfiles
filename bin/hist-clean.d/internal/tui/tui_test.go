@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"reflect"
 	"regexp"
 	"strings"
@@ -202,6 +203,89 @@ func TestDeleteWithNothingSelectedStaysInList(t *testing.T) {
 		t.Errorf("summary shown with nothing selected:\n%s", m.View())
 	}
 	assertMark(t, m, "vbox-start", "[ ]")
+}
+
+// tall builds n names (name-00, name-01, ...) with one entry each, and a
+// last name, many, with n entries (cmd-00, cmd-01, ...).
+func tall(n int) tea.Model {
+	var entries []histfile.Entry
+	var groups []audit.Group
+	for i := 0; i < n; i++ {
+		c := fmt.Sprintf("cmd-%02d", i)
+		entries = append(entries, histfile.Entry{Raw: []byte(c + "\n"), Command: c})
+	}
+	many := audit.Group{Name: "many"}
+	for i := 0; i < n; i++ {
+		many.Entries = append(many.Entries, i)
+	}
+	groups = append(groups, many)
+	for i := 0; i < n; i++ {
+		c := fmt.Sprintf("name-%02d x", i)
+		entries = append(entries, histfile.Entry{Raw: []byte(c + "\n"), Command: c})
+		groups = append(groups, audit.Group{Name: fmt.Sprintf("name-%02d", i), Entries: []int{n + i}})
+	}
+	return New("h", entries, groups, backup)
+}
+
+func resize(m tea.Model, height int) tea.Model {
+	m, _ = m.Update(tea.WindowSizeMsg{Width: 100, Height: height})
+	return m
+}
+
+func assertFits(t *testing.T, m tea.Model, height int) {
+	t.Helper()
+	view := strings.TrimSuffix(m.View(), "\n")
+	if n := strings.Count(view, "\n") + 1; n > height {
+		t.Errorf("view is %d lines, terminal is %d:\n%s", n, height, view)
+	}
+	if !strings.HasPrefix(view, "hist-clean") && !strings.HasPrefix(view, "many") {
+		t.Errorf("header scrolled away:\n%s", view)
+	}
+	if !strings.Contains(view, "space toggle") {
+		t.Errorf("footer scrolled away:\n%s", view)
+	}
+}
+
+func repeat(k string, n int) []string {
+	out := make([]string, n)
+	for i := range out {
+		out[i] = k
+	}
+	return out
+}
+
+func TestListScrollsToCursor(t *testing.T) {
+	m := resize(tall(30), 12)
+	assertFits(t, m, 12)
+	m, _ = press(m, repeat("down", 20)...)
+	m, _ = press(m, " ")
+	assertFits(t, m, 12)
+	assertMark(t, m, "name-19", "[x]")
+	if strings.Contains(m.View(), "name-00") {
+		t.Errorf("top row still shown after scrolling down:\n%s", m.View())
+	}
+}
+
+func TestListScrollsBackUp(t *testing.T) {
+	m := resize(tall(30), 12)
+	m, _ = press(m, repeat("down", 25)...)
+	m, _ = press(m, repeat("up", 25)...)
+	m, _ = press(m, " ")
+	assertMark(t, m, "many", "[x]")
+	assertFits(t, m, 12)
+}
+
+func TestLineViewScrollsToCursor(t *testing.T) {
+	m := resize(tall(30), 12)
+	m, _ = press(m, "enter")
+	assertFits(t, m, 12)
+	m, _ = press(m, repeat("down", 20)...)
+	m, _ = press(m, " ")
+	assertFits(t, m, 12)
+	assertMark(t, m, "cmd-20", "[ ]")
+	if strings.Contains(m.View(), "cmd-00") {
+		t.Errorf("top line still shown after scrolling down:\n%s", m.View())
+	}
 }
 
 func TestQuitKeysQuitUnconfirmed(t *testing.T) {
