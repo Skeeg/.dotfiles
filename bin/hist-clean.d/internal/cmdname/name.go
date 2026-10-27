@@ -27,7 +27,7 @@ var assignment = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=`)
 // command at all.
 func Name(command string) (name string, check bool) {
 	line, _, _ := strings.Cut(command, "\n")
-	words := strings.Fields(strings.TrimLeft(line, " \t("))
+	words := split(strings.TrimLeft(line, " \t("))
 
 	i := 0
 	skipAssignments := func() {
@@ -76,4 +76,52 @@ func Name(command string) (name string, check bool) {
 		return "", false
 	}
 	return word, true
+}
+
+// split breaks a line into shell words. Whitespace inside quotes,
+// backticks or $( ) does not split, so FOO="a b" and TOKEN=$(op item get x)
+// stay one word each. An unclosed quote or substitution runs to the end of
+// the line.
+func split(line string) []string {
+	var words []string
+	var word strings.Builder
+	single, double, backtick := false, false, false
+	depth := 0 // open $( ) levels
+	for i := 0; i < len(line); i++ {
+		c := line[i]
+		switch {
+		case single:
+			single = c != '\''
+		case c == '\\' && i+1 < len(line):
+			word.WriteByte(c)
+			i++
+			c = line[i]
+		case c == '\'' && !double:
+			single = true
+		case c == '"':
+			double = !double
+		case c == '`':
+			backtick = !backtick
+		case c == '$' && i+1 < len(line) && line[i+1] == '(':
+			word.WriteByte(c)
+			i++
+			c = line[i]
+			depth++
+		case c == '(' && depth > 0:
+			depth++
+		case c == ')' && depth > 0:
+			depth--
+		case (c == ' ' || c == '\t') && !double && !backtick && depth == 0:
+			if word.Len() > 0 {
+				words = append(words, word.String())
+				word.Reset()
+			}
+			continue
+		}
+		word.WriteByte(c)
+	}
+	if word.Len() > 0 {
+		words = append(words, word.String())
+	}
+	return words
 }
