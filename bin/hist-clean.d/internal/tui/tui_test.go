@@ -411,3 +411,117 @@ func TestQuitKeysQuitUnconfirmed(t *testing.T) {
 		})
 	}
 }
+
+// multi has a group of three entries, the first with four lines.
+func multi(cmds ...string) tea.Model {
+	if len(cmds) == 0 {
+		cmds = []string{"f() {\n  echo one\n  echo two\n}", "g() {\n  echo three\n}", "third-cmd"}
+	}
+	entries := make([]histfile.Entry, len(cmds))
+	idx := make([]int, len(cmds))
+	for i, c := range cmds {
+		entries[i] = histfile.Entry{Raw: []byte(c + "\n"), Command: c}
+		idx[i] = i
+	}
+	return New("~/.zsh_history", entries, []audit.Group{{Name: "many", Entries: idx}}, backup)
+}
+
+func TestExpandShowsEveryLineOfEntryUnderCursor(t *testing.T) {
+	m, _ := press(multi(), "enter")
+	view := m.View()
+	if !strings.Contains(view, "(+3 lines)") || strings.Contains(view, "echo one") {
+		t.Fatalf("want collapsed rows before expanding:\n%s", view)
+	}
+	m, _ = press(m, "x")
+	view = m.View()
+	for _, want := range []string{"echo one", "echo two", "}"} {
+		if !strings.Contains(view, want) {
+			t.Errorf("expanded view lacks %q:\n%s", want, view)
+		}
+	}
+	if strings.Contains(view, "(+3 lines)") {
+		t.Errorf("expanded row still shows its line count:\n%s", view)
+	}
+	if !strings.Contains(view, "(+2 lines)") || strings.Contains(view, "echo three") {
+		t.Errorf("other rows should stay collapsed:\n%s", view)
+	}
+	m, _ = press(m, "x")
+	if strings.Contains(m.View(), "echo one") {
+		t.Errorf("second x did not collapse the row:\n%s", m.View())
+	}
+}
+
+func TestExpandAppliesToTheRowUnderTheCursor(t *testing.T) {
+	m, _ := press(multi(), "enter", "down", "x")
+	view := m.View()
+	if !strings.Contains(view, "echo three") || strings.Contains(view, "echo one") {
+		t.Errorf("want only the second entry expanded:\n%s", view)
+	}
+}
+
+func TestExpandKeepsTicksUntouched(t *testing.T) {
+	m, _ := press(multi(), "enter", "x")
+	assertMark(t, m, "f() {", "[x]")
+	m, _ = press(m, " ")
+	assertMark(t, m, "f() {", "[ ]")
+}
+
+func TestExpandedLinesNeutralizeControlBytes(t *testing.T) {
+	m, _ := press(multi("f() {\n  \x1b[2J\x07\n  \xff\n}"), "enter", "x")
+	if strings.ContainsAny(m.View(), "\x1b\x07\xff") {
+		t.Errorf("raw control bytes in view: %q", m.View())
+	}
+	if !strings.Contains(m.View(), "^[[2J") {
+		t.Errorf("escape not shown in caret notation:\n%s", m.View())
+	}
+}
+
+func TestExpandedLinesClipToWidthAndScroll(t *testing.T) {
+	long := "f() {\n  " + strings.Repeat("a", 60) + "TAIL-X\n}"
+	m, _ := multi(long).Update(tea.WindowSizeMsg{Width: 30, Height: 20})
+	m, _ = press(m, "enter", "x")
+	assertFitsWidth(t, m, 30)
+	if strings.Contains(m.View(), "TAIL-X") {
+		t.Errorf("long line not clipped:\n%s", m.View())
+	}
+	m, _ = press(m, repeat("right", 10)...)
+	assertFitsWidth(t, m, 30)
+	if !strings.Contains(m.View(), "TAIL-X") {
+		t.Errorf("tail of an expanded line unreachable by scrolling right:\n%s", m.View())
+	}
+}
+
+func TestExpandedEntryScrollsWithCursor(t *testing.T) {
+	m := resize(multi(), 9)
+	m, _ = press(m, "enter", "x")
+	assertFits(t, m, 9)
+	m, _ = press(m, "down", "down")
+	assertFits(t, m, 9)
+	if !strings.Contains(m.View(), "third-cmd") {
+		t.Errorf("cursor row not visible after scrolling:\n%s", m.View())
+	}
+}
+
+func TestExpandedEntryTallerThanScreenIsCut(t *testing.T) {
+	m := resize(multi("f() {\n  a\n  b\n  c\n  d\n  e\n  f\n  g\n}"), 8)
+	m, _ = press(m, "enter", "x")
+	assertFits(t, m, 8)
+}
+
+func TestExpandDoesNothingInListOrAfterLeavingLines(t *testing.T) {
+	before := multi().View()
+	if m, _ := press(multi(), "x"); m.View() != before {
+		t.Errorf("x changed the list view:\n%s", m.View())
+	}
+	m, _ := press(multi(), "enter", "x", "esc", "enter")
+	if strings.Contains(m.View(), "echo one") {
+		t.Errorf("expansion survived leaving the line view:\n%s", m.View())
+	}
+}
+
+func TestLineFooterMentionsExpandKey(t *testing.T) {
+	m, _ := press(multi(), "enter")
+	if !strings.Contains(m.View(), "x expand") {
+		t.Errorf("footer lacks the expand key:\n%s", m.View())
+	}
+}

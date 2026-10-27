@@ -164,3 +164,16 @@ func TestDropCommonKeepsStrayTimestamps(t *testing.T) {
 	}
 	assertGroups(t, DropCommon(groups, 3), groups[:1])
 }
+
+func TestFindGroupsPasteMarkers(t *testing.T) {
+	got := Find(entries("[200~git status", "ls", "\x1b[200~kubectl get pods"), set("ls"), pathDir(t))
+	assertGroups(t, got, []Group{{Name: cmdname.PasteMarker, Entries: []int{0, 2}}})
+}
+
+func TestDropCommonKeepsPasteMarkers(t *testing.T) {
+	groups := []Group{
+		{Name: cmdname.PasteMarker, Entries: []int{0, 1, 2}},
+		{Name: "just", Entries: []int{3, 4, 5}},
+	}
+	assertGroups(t, DropCommon(groups, 3), groups[:1])
+}

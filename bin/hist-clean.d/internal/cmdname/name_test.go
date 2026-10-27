@@ -101,6 +101,14 @@ func TestName(t *testing.T) {
 		{"#12345", "", false},
 		{"#1716322788 note", "", false},
 
+		// a bracketed-paste marker in front of a command, with or without its
+		// ESC byte, is a stray, grouped under its own name
+		{"[200~git status", PasteMarker, true},
+		{"\x1b[200~kubectl get pods", PasteMarker, true},
+		{"  [200~jq .", PasteMarker, true},
+		{"[200~", PasteMarker, true},
+		{"[200", "[200", true},
+
 		// comments are not commands
 		{"# Function: install-teleport", "", false},
 		{"#", "", false},
