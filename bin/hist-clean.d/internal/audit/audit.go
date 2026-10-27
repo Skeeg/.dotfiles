@@ -62,9 +62,13 @@ func Find(entries []histfile.Entry, known map[string]bool, path string) []Group 
 }
 
 // onPath reports whether name is an executable regular file in one of
-// dirs.
+// dirs. Empty entries, which a shell reads as the current directory, are
+// skipped: the history may have been typed anywhere.
 func onPath(name string, dirs []string) bool {
 	for _, d := range dirs {
+		if d == "" {
+			continue
+		}
 		info, err := os.Stat(filepath.Join(d, name))
 		if err == nil && info.Mode().IsRegular() && info.Mode().Perm()&0o111 != 0 {
 			return true
