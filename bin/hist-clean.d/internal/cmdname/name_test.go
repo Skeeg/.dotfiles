@@ -83,6 +83,14 @@ func TestName(t *testing.T) {
 		{"sudo \\\\\n  gti", "gti", true},
 		{"FOO=1 \\\\\n", "", false},
 
+		// a function definition defines a command, it does not run one
+		{"envsafe() {", "", false},
+		{"_truncated_env_output() {\\\\\n  env\\\\\n}", "", false},
+		{"envsafe () {", "", false},
+		{"envsafe ()\n{", "", false},
+		{"generate_api_key(){ echo x; }", "", false},
+		{"nonsensitive(module.x.y)", "nonsensitive(module.x.y", true},
+
 		// a leading backslash skips aliases and is not part of the name
 		{"\\ls -la", "ls", true},
 		{"sudo \\ls", "ls", true},
