@@ -111,7 +111,7 @@ func TestParseBashPlainEntries(t *testing.T) {
 // Kept entries are written back from Raw, so the Raw slices must cover the
 // file exactly: no byte lost, duplicated or re-encoded.
 func TestParseRawRoundTrip(t *testing.T) {
-	for _, name := range []string{"zsh_history", "bash_history_timestamped", "bash_history_plain"} {
+	for _, name := range []string{"zsh_history", "bash_history_timestamped", "bash_history_mixed", "bash_history_plain"} {
 		t.Run(name, func(t *testing.T) {
 			data := readFixture(t, name)
 			_, entries := Parse(data)

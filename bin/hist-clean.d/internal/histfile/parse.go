@@ -61,19 +61,24 @@ func trimNewline(b []byte) []byte {
 	return bytes.TrimSuffix(b, []byte("\n"))
 }
 
+// detect reads zsh from the first non-blank line. Bash is timestamped when
+// any line is a timestamp, since a history kept from before HISTTIMEFORMAT
+// was set starts with plain lines.
 func detect(lines [][]byte) Format {
 	for _, l := range lines {
 		l = trimNewline(l)
 		if len(bytes.TrimSpace(l)) == 0 {
 			continue
 		}
-		switch {
-		case zshPrefix.Match(l):
+		if zshPrefix.Match(l) {
 			return FormatZsh
-		case bashTimestamp.Match(l):
+		}
+		break
+	}
+	for _, l := range lines {
+		if bashTimestamp.Match(trimNewline(l)) {
 			return FormatBashTimestamped
 		}
-		return FormatBashPlain
 	}
 	return FormatBashPlain
 }
