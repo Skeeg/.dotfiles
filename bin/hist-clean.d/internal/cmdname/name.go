@@ -30,6 +30,7 @@ var (
 	assignment     = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=`)
 	// zsh stores a typed backslash-newline as two backslashes and a newline,
 	// and a bare newline as one, so any run of them ends a line.
+	functionDef  = regexp.MustCompile(`^[^\s()]+\(\)`)
 	continuation = regexp.MustCompile(`\\+\n`)
 )
 
@@ -77,6 +78,11 @@ func Name(command string) (name string, check bool) {
 	if i >= len(words) {
 		// A bare wrapper ("sudo", "sudo -u root") still names a command.
 		return wrapper, wrapper != ""
+	}
+
+	// "name() {" and "name () {" define a command, they do not run one.
+	if functionDef.MatchString(words[i]) || (i+1 < len(words) && strings.HasPrefix(words[i+1], "()")) {
+		return "", false
 	}
 
 	// A leading backslash skips aliases ("\ls") and is not part of the name.
