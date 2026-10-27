@@ -468,7 +468,7 @@ func TestExpandKeepsTicksUntouched(t *testing.T) {
 
 func TestExpandedLinesNeutralizeControlBytes(t *testing.T) {
 	m, _ := press(multi("f() {\n  \x1b[2J\x07\n  \xff\n}"), "enter", "x")
-	if strings.ContainsAny(m.View(), "\x1b\x07\xff") {
+	if strings.ContainsAny(m.View(), "\x1b\x07") || strings.Contains(m.View(), "\xff") {
 		t.Errorf("raw control bytes in view: %q", m.View())
 	}
 	if !strings.Contains(m.View(), "^[[2J") {

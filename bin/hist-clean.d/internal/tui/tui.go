@@ -33,11 +33,12 @@ type Model struct {
 	lineCursor int // line row in the line view of group cursor
 	confirmed  bool
 
-	height     int // terminal rows; 0 until Bubble Tea reports it
-	width      int // terminal columns; 0 until Bubble Tea reports it
-	offset     int // first name row shown
-	lineOffset int // first line row shown
-	shift      int // first column of command text shown, shared by all rows
+	height     int          // terminal rows; 0 until Bubble Tea reports it
+	width      int          // terminal columns; 0 until Bubble Tea reports it
+	offset     int          // first name row shown
+	lineOffset int          // first line row shown
+	shift      int          // first column of command text shown, shared by all rows
+	expanded   map[int]bool // line rows of group cursor shown in full
 }
 
 // step is how many columns one left or right press scrolls.
@@ -69,10 +70,51 @@ func follow(cursor, offset, rows int) int {
 func (m Model) scrolled() Model {
 	m.offset = follow(m.cursor, m.offset, m.rows(len(m.groups)))
 	if m.screen == linesScreen {
-		n := len(m.groups[m.cursor].Entries)
-		m.lineOffset = follow(m.lineCursor, m.lineOffset, m.rows(n))
+		m.lineOffset = m.followLine()
 	}
 	return m
+}
+
+// lineHeight is how many screen lines row l of the line view takes.
+func (m Model) lineHeight(l int) int {
+	if !m.expanded[l] {
+		return 1
+	}
+	return 1 + strings.Count(m.entries[m.groups[m.cursor].Entries[l]].Command, "\n")
+}
+
+// followLine moves lineOffset just enough to keep the cursor row on screen.
+// Expanded rows take more than one line, so it counts screen lines.
+func (m Model) followLine() int {
+	off := min(m.lineOffset, m.lineCursor)
+	if m.height <= 0 {
+		return off
+	}
+	budget := m.rows(0)
+	for off < m.lineCursor {
+		used := 0
+		for l := off; l <= m.lineCursor; l++ {
+			used += m.lineHeight(l)
+		}
+		if used <= budget {
+			break
+		}
+		off++
+	}
+	return off
+}
+
+// lineTexts is the command text of row l, one string per screen line.
+func (m Model) lineTexts(l int) []string {
+	command := m.entries[m.groups[m.cursor].Entries[l]].Command
+	if !m.expanded[l] {
+		return []string{firstLine(command)}
+	}
+	lines := strings.Split(command, "\n")
+	for i, line := range lines {
+		lines[i] = printable(line)
+	}
+	return lines
 }
 
 // New builds the pick list for the invalid groups found in entries.
@@ -135,6 +177,7 @@ func (m Model) updateList(k string) (Model, tea.Cmd) {
 	case "enter":
 		m.sel.Open(m.cursor)
 		m.lineCursor, m.lineOffset, m.shift = 0, 0, 0
+		m.expanded = nil
 		m.screen = linesScreen
 	case "d":
 		if n, _ := m.sel.Counts(); n > 0 {
@@ -154,8 +197,15 @@ func (m Model) updateLines(k string) (Model, tea.Cmd) {
 		m.lineCursor = min(m.lineCursor+1, len(m.groups[m.cursor].Entries)-1)
 	case " ":
 		m.sel.ToggleLine(m.cursor, m.lineCursor)
+	case "x":
+		next := make(map[int]bool, len(m.expanded)+1)
+		for l, on := range m.expanded {
+			next[l] = on
+		}
+		next[m.lineCursor] = !next[m.lineCursor]
+		m.expanded = next
 	case "esc":
-		m.screen, m.shift = listScreen, 0
+		m.screen, m.shift, m.expanded = listScreen, 0, nil
 	case "q":
 		return m, tea.Quit
 	}
@@ -269,8 +319,8 @@ func (m Model) maxShift() int {
 	if m.screen == linesScreen {
 		g := m.groups[m.cursor]
 		prefix = m.linePrefix(0)
-		for _, e := range g.Entries {
-			texts = append(texts, firstLine(m.entries[e].Command))
+		for l := range g.Entries {
+			texts = append(texts, m.lineTexts(l)...)
 		}
 	} else {
 		prefix = m.listPrefix(0, m.nameWidth())
@@ -325,12 +375,21 @@ func (m Model) viewLines() string {
 	var b strings.Builder
 	g := m.groups[m.cursor]
 	fmt.Fprintf(&b, "%s: %s\n\n", g.Name, plural(len(g.Entries), "entry", "entries"))
-	end := min(m.lineOffset+m.rows(len(g.Entries)), len(g.Entries))
-	for l := m.lineOffset; l < end; l++ {
-		e := g.Entries[l]
-		fmt.Fprintf(&b, "%s%s\n", m.linePrefix(l), m.shifted(firstLine(m.entries[e].Command)))
+	budget := m.rows(0)
+	used := 0
+rows:
+	for l := m.lineOffset; l < len(g.Entries); l++ {
+		prefix := m.linePrefix(l)
+		for _, text := range m.lineTexts(l) {
+			if m.height > 0 && used >= budget {
+				break rows
+			}
+			fmt.Fprintf(&b, "%s%s\n", prefix, m.shifted(text))
+			prefix = strings.Repeat(" ", utf8.RuneCountInString(prefix))
+			used++
+		}
 	}
-	b.WriteString("\nspace toggle line   esc back   ←→ scroll   q quit\n")
+	b.WriteString("\nspace toggle line   x expand   esc back   ←→ scroll   q quit\n")
 	return b.String()
 }
 

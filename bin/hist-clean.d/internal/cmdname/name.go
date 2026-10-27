@@ -25,6 +25,16 @@ var wrappers = map[string]map[string]bool{
 // real command, so the audit always reports it.
 const StrayTimestamp = "#<epoch>"
 
+// PasteMarker names entries that start with the terminal's bracketed-paste
+// marker "[200~", with or without its ESC byte. The marker is not part of any
+// command, so these never run.
+const PasteMarker = "[200~"
+
+// IsStray reports whether name is a reserved group for entries that are
+// never real commands. The audit always reports these, and they are never
+// hidden as common.
+func IsStray(name string) bool { return name == StrayTimestamp || name == PasteMarker }
+
 var (
 	strayTimestamp = regexp.MustCompile(`^#[0-9]{9,}$`)
 	assignment     = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=`)
@@ -41,6 +51,9 @@ var (
 func Name(command string) (name string, check bool) {
 	if strayTimestamp.MatchString(strings.TrimSpace(command)) {
 		return StrayTimestamp, true
+	}
+	if strings.HasPrefix(strings.TrimPrefix(strings.TrimLeft(command, " \t"), "\x1b"), PasteMarker) {
+		return PasteMarker, true
 	}
 	line, _, _ := strings.Cut(continuation.ReplaceAllString(command, " "), "\n")
 	words := split(strings.TrimLeft(line, " \t("))

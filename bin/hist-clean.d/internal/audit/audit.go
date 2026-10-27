@@ -79,7 +79,7 @@ func onPath(name string, dirs []string) bool {
 
 // DropCommon removes groups with limit or more entries. A name typed that
 // often is a real tool missing from this machine, not a typo. Stray
-// timestamps are never real, so they stay however many there are. A limit
+// groups are never real, so they stay however many there are. A limit
 // of zero or less keeps every group.
 func DropCommon(groups []Group, limit int) []Group {
 	if limit <= 0 {
@@ -87,7 +87,7 @@ func DropCommon(groups []Group, limit int) []Group {
 	}
 	var out []Group
 	for _, g := range groups {
-		if len(g.Entries) < limit || g.Name == cmdname.StrayTimestamp {
+		if len(g.Entries) < limit || cmdname.IsStray(g.Name) {
 			out = append(out, g)
 		}
 	}
