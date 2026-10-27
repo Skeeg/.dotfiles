@@ -143,10 +143,14 @@ TUI: Bubble Tea. The selection state is a plain Go type with no Bubble Tea depen
 - The size and mtime check before the rename, guarding against zsh `sharehistory` writing mid-edit.
 - Bubble Tea for the TUI.
 
+- Any history path containing `cmdlog` is refused outright, as a guard on the cmdlog non-goal.
+- In the confirmation screen, only lowercase `y` confirms.
+- Control bytes in history show in caret notation (`^[`), and invalid UTF-8 shows as U+FFFD, so history text can't drive the terminal.
+- The binary is never on `$PATH`. The `hist-clean` shell function builds it into `~/.cache/hist-clean-go/bin/hist-clean` on first use and whenever a non-test `.go`, `go.mod` or `go.sum` is newer. It uses the host's `go` if present, otherwise `go-docker` cross-building for the host's OS and arch.
+
 ## Left to the builder
 
-- How the binary gets built and onto `$PATH` once Go is available through mise.
-- Scroll behaviour and colours in the TUI.
+- Colours in the TUI.
 
 ## Open risks, unchecked
 
