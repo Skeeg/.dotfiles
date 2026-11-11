@@ -15,3 +15,5 @@
 !skills/*/SKILL.md
 !templates/
 !templates/*.md
+!marketplace/
+!marketplace/**

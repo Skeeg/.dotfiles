@@ -1,0 +1,29 @@
+{
+  "description": "Append every Bash command to ~/.claude_cmdhistory (before it runs) and ~/.claude_cmdhistory_done (after it finishes). Observe-only: never blocks or alters a tool call.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/cmdhistory-pre.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/cmdhistory-post.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

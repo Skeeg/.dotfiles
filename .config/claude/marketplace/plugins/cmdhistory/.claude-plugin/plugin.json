@@ -1,0 +1,13 @@
+{
+  "name": "cmdhistory",
+  "version": "0.1.0",
+  "description": "Log every Bash command Claude Code runs, across every project, session and subagent, to a local JSONL file, and a skill for finding which session and directory a past task ran in",
+  "author": {
+    "name": "Ryan Peay"
+  },
+  "metadata": {
+    "owner": "@ryan-peay",
+    "audience": ["engineering"],
+    "surfaces": ["code"]
+  }
+}

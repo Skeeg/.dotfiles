@@ -1,0 +1,21 @@
+{
+  "name": "dotfiles",
+  "owner": {
+    "name": "Ryan Peay"
+  },
+  "metadata": {
+    "description": "Claude Code plugins tracked in Ryan's dotfiles"
+  },
+  "plugins": [
+    {
+      "name": "cmdhistory",
+      "source": "./plugins/cmdhistory",
+      "description": "Log every Bash command Claude Code runs, across every project, session and subagent, to a local JSONL file, and a skill for finding which session and directory a past task ran in",
+      "author": {
+        "name": "Ryan Peay"
+      },
+      "keywords": ["audit", "hooks", "history", "bash", "sessions", "secrets"],
+      "category": "workflow"
+    }
+  ]
+}
